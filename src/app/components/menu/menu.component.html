@@ -1,0 +1,66 @@
+<div id="instructionsComponent" *ngIf="showInstructions">
+  <div id="instructionsContent">
+    <div id="exitButton" (click)="showInstructions = false"></div>
+    <h1>WELCOME TO TANK TANGO!</h1>
+    <p>
+    Tank Tango is an online, multiplayer, tank-vs-tank game. Your goal is to be the last tank alive. You and each of your competitors will be placed
+    in an arena in which the fight will commence. If you are the last tank standing, you will be awarded 1 point and the game will reset.
+    </p>
+    <p><u>Creating a Game:</u></p>
+    <p>
+    Follow the steps on the menu screen. You must select one of the four tanks (Tank Tank, Assault Tank, Scout Tank, or Demolition Tank) as the tank you will be controlling.
+    You can view each tank's stats by hovering over that tank. To select a tank, simply click on it. In addition to the basic stats, each tank posesses
+    a special ability that may be used once per round and that lasts for 2 seconds. Hover over each tank to review its special ability.
+    </p>
+    <p>
+    You may either create a new game or join a game. Each game can house 2-4 players. If you create a game, you will be given a game code that should be distributed
+    to all others seeking to join your game. If you join a game, you will be required to enter a valid game code. Once all players have joined the game, the game
+    creator may start the game. Once started, the game will continue forever until there are not enough players left in the game to continue. To exit the game, simply
+    hit the "Return to Menu" button at the top right or exit out of the browser.
+    </p>
+    <p><u>Controlling Your Tank:</u></p>
+    <p>
+    You can move your tank using the WASD keys on your keyboard. Your tank turret will automatically follow your mouse. To fire, simply left click with your mouse.
+    To use your special ability, hit the SPACE BAR. Your special ability will then last for 2 seconds. It will not be available until the next round.
+    </p>
+    <p><u>Switching Tanks:</u></p>
+    <p>
+    After each round has finished, you will have 10 seconds to switch your tank. To switch, click on the "Switch Tanks" button below your name in the score area.
+    Then select the new tank you will be controlling. If you have not selected before the 10 seconds has elapsed, you will continue with the tank from the last round.
+    </p>
+  </div>
+</div>
+
+<div id="menuComponent">
+  <p id="gameTitle">TANK TANGO</p>
+  <div class="step">
+    <p>1. CLICK <u id="instructionsLink" (click)="showInstructions = true;">HERE</u> TO LEARN HOW TO PLAY</p>
+  </div>
+  <div class="step">
+    <p>2. ENTER YOUR GAMER NAME</p>
+    <input #gamerNameInput type="text" id="gamerNameInput" maxlength="15" placeholder="Gamer Name" (input)="updateGamerName()">
+  </div>
+  <div class="step">
+    <p>3. CHOOSE YOUR TANK</p>
+    <div id="tankSelection">
+      <div id="tankTank" class="tank" (click)="setTankSelection(1)" [ngClass]="{'selected': tankSelection.type == 1}">
+        <p class="tankTitle">Tank Tank</p>
+      </div>
+      <div id="assaultTank" class="tank" (click)="setTankSelection(2)" [ngClass]="{'selected': tankSelection.type == 2}">
+        <p class="tankTitle">Assault Tank</p>
+      </div>
+      <div id="scoutTank" class="tank" (click)="setTankSelection(3)" [ngClass]="{'selected': tankSelection.type == 3}">
+        <p class="tankTitle">Scout Tank</p>
+      </div>
+      <div id="DemolitionTank" class="tank" (click)="setTankSelection(4)" [ngClass]="{'selected': tankSelection.type == 4}">
+        <p class="tankTitle">Demolition Tank</p>
+      </div>
+    </div>
+  </div>
+  <div class="step">
+    <p>4. SELECT YOUR GAME MODE</p>
+    <button class="gameModeButton">Create New Game</button><br>
+    <button class="gameModeButton">Join Existing Game</button>
+  </div>
+</div>
+

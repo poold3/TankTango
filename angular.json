@@ -66,6 +66,11 @@
               "browserTarget": "TankTango:build:development"
             }
           },
+          "options": {
+            "ssl": true,
+            "sslKey": "certs/sslKey.key",
+            "sslCert": "certs/sslCert.cert"
+          },
           "defaultConfiguration": "development"
         },
         "extract-i18n": {

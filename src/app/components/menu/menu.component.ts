@@ -80,4 +80,55 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
       });
     }
   }
-}
+
+  verifyReadyToPlay(): boolean {
+    if (this.gamerName.trim().length === 0) {
+      return false;
+    }
+    if (this.tankSelection.type === TankType.None) {
+      return false;
+    }
+
+    return true;
+  }
+
+  createGame(): void {
+    if (!this.verifyReadyToPlay()) {
+      window.alert("Please enter a name and select a tank to continue.");
+      return;
+    }
+
+    this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
+      return true;
+    });
+    this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
+      return false;
+    });
+  }
+
+  joinGame(): void {
+    if (!this.verifyReadyToPlay()) {
+      window.alert("Please enter a name and select a tank to continue.");
+      return;
+    }
+
+    const gameCode = window.prompt("Please provide a valid game code.");
+
+    if (gameCode === null) {
+      return;
+    } else if (gameCode.trim().length !== 6) {
+      window.alert("Invalid game code.")
+      return;
+    } else {
+      this.stateService.addSlice("gameCode", gameCode);
+    }
+
+    this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
+      return true;
+    });
+    this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
+      return false;
+    });
+    
+  }
+ }

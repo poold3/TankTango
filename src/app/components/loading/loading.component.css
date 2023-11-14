@@ -14,7 +14,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #a2d1a2;
+  background-color: rgb(102, 240, 0);
 }
 
 .lds-ellipsis div:nth-child(1) {

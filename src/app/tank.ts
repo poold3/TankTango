@@ -72,9 +72,9 @@ export const ScoutTank: Tank = {
 
 export const DemolitionTank: Tank = {
   type: TankType.Demolition,
-  health: 2,
+  health: 3,
   speed: 3,
-  fireRate: 3,
+  fireRate: 2,
   width: 35,
   length: 49,
   positionX: 0,

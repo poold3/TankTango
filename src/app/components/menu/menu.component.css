@@ -1,10 +1,12 @@
 #menuComponent {
   width: 100%;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
   justify-content: flex-start;
   align-items: center;
+  overflow: auto;
 }
 
 #gameTitle {
@@ -44,7 +46,8 @@
 }
 
 #instructionsContent {
-  background-color: #fefefe;
+  background-color: rgb(19, 21, 33);
+  color: white;
   margin: auto;
   padding: 20px;
   border: 1px solid #888;
@@ -80,7 +83,7 @@
 
 .tank {
   width: 200px;
-  height: 200px;
+  height: 290px;
   margin: 10px;
   border: solid 1px white;
   border-radius: 5px;
@@ -95,7 +98,7 @@
 }
 
 .tank:hover {
-  transform: scale(1.05);
+  transform: translateY(-5px);
 }
 
 .tankTitle {
@@ -114,4 +117,62 @@
 
 .gameModeButton:hover {
   transform: scale(1.05);
+}
+
+#tankTankImage {
+  width: 55px;
+  height: 39px;
+  background-size: cover;
+  background-image: url("/assets/tanks/tankturret.png"), url("/assets/tanks/tankbody.png");
+}
+
+#assaultTankImage {
+  width: 49px;
+  height: 35px;
+  background-size: cover;
+  background-image: url("/assets/tanks/assaultturret.png"), url("/assets/tanks/assaultbody.png");
+}
+
+#scoutTankImage {
+  width: 45px;
+  height: 31px;
+  background-size: cover;
+  background-image: url("/assets/tanks/scoutturret.png"), url("/assets/tanks/scoutbody.png");
+}
+
+#demolitionTankImage {
+  width: 49px;
+  height: 35px;
+  background-size: cover;
+  background-image: url("/assets/tanks/demolitionturret.png"), url("/assets/tanks/demolitionbody.png");
+}
+
+.stats {
+  width: 100%;
+  height: 30px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-items: center;
+  margin-top: 5px;
+}
+
+.statsTitle {
+  text-align: center;
+  padding-top: 10px;
+  width: 90px;
+  height: 30px;
+  color: white;
+}
+
+.statsImage {
+  width: 100px;
+  height: 30px;
+}
+
+.specialAbility {
+  margin-top: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
 }

@@ -1,7 +1,9 @@
 import { Component, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, finalize, timeout } from 'rxjs';
+import { CreateRequest, JoinRequest } from 'src/app/requests';
 import { StateService } from 'src/app/services/state.service';
 import { Tank, TankType, TankTank, AssaultTank, ScoutTank, DemolitionTank, TankColors } from 'src/app/tank';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-menu',
@@ -28,7 +30,7 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
     color: TankColors.None
   }
 
-  constructor(private readonly stateService: StateService) {
+  constructor(private readonly stateService: StateService, private readonly http: HttpClient) {
     this.stateService.addSlice("showInstructions", false);
     this.stateService.addSlice("gamerName", this.gamerName);
     this.stateService.addSlice("tankSelection", this.tankSelection);
@@ -101,8 +103,32 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
       return true;
     });
-    this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
-      return false;
+    const headers = { 'content-type': 'application/json' };
+    const request: CreateRequest = {
+      gamerName: this.gamerName,
+      tankType: this.tankSelection.type
+    }
+    const body = JSON.stringify(request);
+    this.http.post("https://localhost:3000/create/", body, { headers, responseType: "json" })
+    .pipe(
+      timeout(10000),
+      finalize(() => {
+        this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
+          return false;
+        });
+      })
+    )
+    .subscribe({
+      next: (response) => {
+        console.log(response);
+        this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
+          return true;
+        });
+      },
+      error: (error) => {
+        console.log(error);
+        window.alert("Error: " + error.message);
+      }
     });
   }
 
@@ -119,15 +145,39 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
     } else if (gameCode.trim().length !== 6) {
       window.alert("Invalid game code.")
       return;
-    } else {
-      this.stateService.addSlice("gameCode", gameCode);
     }
 
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
       return true;
     });
-    this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
-      return false;
+    const headers = { 'content-type': 'application/json' };
+    const request: JoinRequest = {
+      gamerName: this.gamerName,
+      tankType: this.tankSelection.type,
+      gameCode: gameCode
+    }
+    const body = JSON.stringify(request);
+    this.http.post("https://localhost:3000/join/", body, { headers, responseType: "json" })
+    .pipe(
+      timeout(10000),
+      finalize(() => {
+        this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
+          return false;
+        });
+      })
+    )
+    .subscribe({
+      next: (response) => {
+        console.log(response);
+        this.stateService.addSlice("gameCode", gameCode);
+        this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
+          return true;
+        });
+      },
+      error: (error) => {
+        console.log(error);
+        window.alert("Error: " + error.message);
+      }
     });
     
   }

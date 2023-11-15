@@ -1,9 +1,10 @@
 import { Component, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-import { Subscription, finalize, timeout } from 'rxjs';
+import { EMPTY, Observable, Subject, Subscription, catchError, finalize, of, switchMap, timeout } from 'rxjs';
 import { CreateRequest, JoinRequest } from 'src/app/requests';
 import { StateService } from 'src/app/services/state.service';
 import { Tank, TankType, TankTank, AssaultTank, ScoutTank, DemolitionTank, TankColors } from 'src/app/tank';
 import { HttpClient } from '@angular/common/http';
+import { CreateResponse, JoinResponse } from 'src/app/responses';
 
 @Component({
   selector: 'app-menu',
@@ -29,6 +30,8 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
     turretHeading: 0.0,
     color: TankColors.None
   }
+  createGame$ = new Subject<Observable<CreateResponse>>();
+  joinGame$ = new Subject<Observable<JoinResponse>>();
 
   constructor(private readonly stateService: StateService, private readonly http: HttpClient) {
     this.stateService.addSlice("showInstructions", false);
@@ -43,6 +46,53 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
       }),
       this.stateService.select<Tank>("tankSelection").subscribe((tankSelection: Tank): void => {
         this.tankSelection = tankSelection;
+      }),
+      this.createGame$.pipe(
+        switchMap((response: Observable<CreateResponse>) => response.pipe(
+          timeout(10000),
+          finalize(() => {
+            this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
+              return false;
+            });
+          }),
+          catchError(error => {
+            console.error(error);
+            window.alert(error.message);
+            return EMPTY;
+          })
+        ))
+      ).subscribe((response: CreateResponse) => {
+        console.log(response);
+        if (response.success) {
+          this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
+            return false;
+          });
+        } else {
+          window.alert(response.message);
+        }
+      }),
+      this.joinGame$.pipe(
+        switchMap((response: Observable<JoinResponse>) => response.pipe(
+          timeout(10000),
+          finalize(() => {
+            this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
+              return false;
+            });
+          }),
+          catchError(error => {
+            console.error(error);
+            window.alert(error.message);
+            return EMPTY;
+          })
+        ))
+      ).subscribe((response: JoinResponse) => {
+        if (response.success) {
+          this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
+            return false;
+          });
+        } else {
+          window.alert(response.message);
+        }
       })
     );
   }
@@ -109,27 +159,7 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
       tankType: this.tankSelection.type
     }
     const body = JSON.stringify(request);
-    this.http.post("https://localhost:3000/create/", body, { headers, responseType: "json" })
-    .pipe(
-      timeout(10000),
-      finalize(() => {
-        this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
-          return false;
-        });
-      })
-    )
-    .subscribe({
-      next: (response) => {
-        console.log(response);
-        this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
-          return true;
-        });
-      },
-      error: (error) => {
-        console.log(error);
-        window.alert("Error: " + error.message);
-      }
-    });
+    this.createGame$.next(this.http.post<CreateResponse>("https://localhost:3000/create/", body, { headers, responseType: "json" }));
   }
 
   joinGame(): void {
@@ -157,28 +187,6 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
       gameCode: gameCode
     }
     const body = JSON.stringify(request);
-    this.http.post("https://localhost:3000/join/", body, { headers, responseType: "json" })
-    .pipe(
-      timeout(10000),
-      finalize(() => {
-        this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
-          return false;
-        });
-      })
-    )
-    .subscribe({
-      next: (response) => {
-        console.log(response);
-        this.stateService.addSlice("gameCode", gameCode);
-        this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
-          return true;
-        });
-      },
-      error: (error) => {
-        console.log(error);
-        window.alert("Error: " + error.message);
-      }
-    });
-    
+    this.joinGame$.next(this.http.post<JoinResponse>("https://localhost:3000/join/", body, { headers, responseType: "json" })); 
   }
  }

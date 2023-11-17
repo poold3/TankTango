@@ -5,12 +5,14 @@ import { HttpClientModule } from '@angular/common/http';
 import { AppComponent } from './app.component';
 import { MenuComponent } from './components/menu/menu.component';
 import { LoadingComponent } from './components/loading/loading.component';
+import { WaitingroomComponent } from './components/waitingroom/waitingroom.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     MenuComponent,
-    LoadingComponent
+    LoadingComponent,
+    WaitingroomComponent
   ],
   imports: [
     BrowserModule,

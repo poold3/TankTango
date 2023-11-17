@@ -13,15 +13,20 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   canvasElement!: HTMLCanvasElement;
   ctx!: CanvasRenderingContext2D;
   showMenu: boolean = false;
+  showWaitingRoom: boolean = false;
   isLoading: boolean = true;
   subscriptions: Subscription[] = new Array<Subscription>();
 
   constructor(private readonly stateService: StateService, private readonly canvasService: CanvasService) {
     this.stateService.addSlice("showMenu", this.showMenu);
+    this.stateService.addSlice("showWaitingRoom", this.showWaitingRoom);
     this.stateService.addSlice("isLoading", this.isLoading);
     this.subscriptions.push(
       this.stateService.select<boolean>("showMenu").subscribe((showMenu: boolean): void => {
         this.showMenu = showMenu;
+      }),
+      this.stateService.select<boolean>("showWaitingRoom").subscribe((showWaitingRoom: boolean): void => {
+        this.showWaitingRoom = showWaitingRoom;
       }),
       this.stateService.select<boolean>("isLoading").subscribe((isLoading: boolean): void => {
         this.isLoading = isLoading;

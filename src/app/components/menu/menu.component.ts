@@ -2,9 +2,10 @@ import { Component, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@ang
 import { EMPTY, Observable, Subject, Subscription, catchError, finalize, of, switchMap, timeout } from 'rxjs';
 import { CreateRequest, JoinRequest } from 'src/app/requests';
 import { StateService } from 'src/app/services/state.service';
-import { Tank, TankType, TankTank, AssaultTank, ScoutTank, DemolitionTank, TankColors } from 'src/app/tank';
+import { ServerTank, TankType, TankTank, AssaultTank, ScoutTank, DemolitionTank, TankColors } from 'src/app/tank';
 import { HttpClient } from '@angular/common/http';
 import { CreateResponse, JoinResponse } from 'src/app/responses';
+import { GameService } from 'src/app/services/game.service';
 
 @Component({
   selector: 'app-menu',
@@ -16,27 +17,15 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
   subscriptions: Subscription[] = new Array<Subscription>();
   @ViewChild("gamerNameInput") gamerNameInput!: ElementRef;
   gamerNameInputElement!: HTMLInputElement;
-  gamerName: string = "";
-  tankSelection: Tank = {
-    type: TankType.None,
-    health: 0,
-    speed: 0,
-    fireRate: 0,
-    width: 0,
-    length: 0,
-    positionX: 0,
-    positionY: 0,
-    heading: 0.0,
-    turretHeading: 0.0,
-    color: TankColors.None
-  }
+  gamerName!: string;
+  tankSelection: TankType = TankType.None;
   createGame$ = new Subject<Observable<CreateResponse>>();
   joinGame$ = new Subject<Observable<JoinResponse>>();
 
-  constructor(private readonly stateService: StateService, private readonly http: HttpClient) {
+
+  constructor(private readonly stateService: StateService, private readonly http: HttpClient, private readonly gameService: GameService) {
     this.stateService.addSlice("showInstructions", false);
-    this.stateService.addSlice("gamerName", this.gamerName);
-    this.stateService.addSlice("tankSelection", this.tankSelection);
+    
     this.subscriptions.push(
       this.stateService.select<boolean>("showInstructions").subscribe((showInstructions: boolean): void => {
         this.showInstructions = showInstructions;
@@ -44,8 +33,8 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
       this.stateService.select<string>("gamerName").subscribe((gamerName: string): void => {
         this.gamerName = gamerName;
       }),
-      this.stateService.select<Tank>("tankSelection").subscribe((tankSelection: Tank): void => {
-        this.tankSelection = tankSelection;
+      this.stateService.select<ServerTank>("tankSelection").subscribe((tankSelection: ServerTank): void => {
+        this.tankSelection = tankSelection.type;
       }),
       this.createGame$.pipe(
         switchMap((response: Observable<CreateResponse>) => response.pipe(
@@ -62,11 +51,15 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
           })
         ))
       ).subscribe((response: CreateResponse) => {
-        console.log(response);
         if (response.success) {
-          this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
-            return false;
+          console.log(response);
+          this.stateService.dispatch<string>("gameCode", (initialState: string): string => {
+            return response.gameCode;
           });
+          this.stateService.dispatch<number>("port", (initialState: number): number => {
+            return response.port;
+          });
+          this.enterWaitingRoom();
         } else {
           window.alert(response.message);
         }
@@ -87,9 +80,11 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
         ))
       ).subscribe((response: JoinResponse) => {
         if (response.success) {
-          this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
-            return false;
+          console.log(response);
+          this.stateService.dispatch<number>("port", (initialState: number): number => {
+            return response.port;
           });
+          this.enterWaitingRoom();
         } else {
           window.alert(response.message);
         }
@@ -111,24 +106,42 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
     this.stateService.dispatch("gamerName", (gamerName: string): string => {
       return this.gamerNameInputElement.value;
     });
+    this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
+      return {
+        ...initialState,
+        gamerName: this.gamerNameInputElement.value
+      };
+    });
   }
 
   setTankSelection(tank: number): void {
     if (tank == TankType.Tank) {
-      this.stateService.dispatch("tankSelection", (initialState: Tank): Tank => {
-        return TankTank;
+      this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
+        return {
+          ...initialState,
+          type: TankType.Tank
+        };
       });
     } else if (tank == TankType.Assault) {
-      this.stateService.dispatch("tankSelection", (initialState: Tank): Tank => {
-        return AssaultTank;
+      this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
+        return {
+          ...initialState,
+          type: TankType.Assault
+        };
       });
     } else if (tank == TankType.Scout) {
-      this.stateService.dispatch("tankSelection", (initialState: Tank): Tank => {
-        return ScoutTank;
+      this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
+        return {
+          ...initialState,
+          type: TankType.Scout
+        };
       });
     } else if (tank == TankType.Demolition) {
-      this.stateService.dispatch("tankSelection", (initialState: Tank): Tank => {
-        return DemolitionTank;
+      this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
+        return {
+          ...initialState,
+          type: TankType.Demolition
+        };
       });
     }
   }
@@ -137,7 +150,7 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
     if (this.gamerName.trim().length === 0) {
       return false;
     }
-    if (this.tankSelection.type === TankType.None) {
+    if (this.tankSelection === TankType.None) {
       return false;
     }
 
@@ -156,7 +169,7 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
     const headers = { 'content-type': 'application/json' };
     const request: CreateRequest = {
       gamerName: this.gamerName,
-      tankType: this.tankSelection.type
+      tankType: this.tankSelection
     }
     const body = JSON.stringify(request);
     this.createGame$.next(this.http.post<CreateResponse>("https://localhost:3000/create/", body, { headers, responseType: "json" }));
@@ -177,16 +190,30 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
+    this.stateService.dispatch<string>("gameCode", (initialState: string): string => {
+      return gameCode;
+    });
+
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
       return true;
     });
     const headers = { 'content-type': 'application/json' };
     const request: JoinRequest = {
       gamerName: this.gamerName,
-      tankType: this.tankSelection.type,
+      tankType: this.tankSelection,
       gameCode: gameCode
     }
     const body = JSON.stringify(request);
     this.joinGame$.next(this.http.post<JoinResponse>("https://localhost:3000/join/", body, { headers, responseType: "json" })); 
+  }
+
+  enterWaitingRoom(): void {
+    this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
+      return false;
+    });
+    this.stateService.dispatch<boolean>("showWaitingRoom", (initialState: boolean): boolean => {
+      return true;
+    });
+    this.gameService.connect();
   }
  }

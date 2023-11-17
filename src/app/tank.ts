@@ -14,13 +14,10 @@ export enum TankType {
   Demolition
 }
 
-export interface Tank {
+export interface ServerTank {
+  gamerName: string;
   type: TankType;
-  health: number;
-  speed: number;
-  fireRate: number;
-  width: number;
-  length: number;
+  alive: boolean;
   positionX: number;
   positionY: number;
   heading: number;
@@ -28,58 +25,47 @@ export interface Tank {
   color: TankColors;
 }
 
-export const TankTank: Tank = {
+export interface TankInfo {
+  type: TankType;
+  health: number;
+  speed: number;
+  fireRate: number;
+  width: number;
+  length: number;
+}
+
+export const TankTank: TankInfo = {
   type: TankType.Tank,
   health: 4,
   speed: 2,
   fireRate: 2,
   width: 39,
-  length: 55,
-  positionX: 0,
-  positionY: 0,
-  heading: 0.0,
-  turretHeading: 0.0,
-  color: TankColors.None
+  length: 55
 }
 
-export const AssaultTank: Tank = {
+export const AssaultTank: TankInfo = {
   type: TankType.Assault,
   health: 2,
   speed: 2,
   fireRate: 4,
   width: 35,
-  length: 49,
-  positionX: 0,
-  positionY: 0,
-  heading: 0.0,
-  turretHeading: 0.0,
-  color: TankColors.None
+  length: 49
 }
 
-export const ScoutTank: Tank = {
+export const ScoutTank: TankInfo = {
   type: TankType.Scout,
   health: 2,
   speed: 4,
   fireRate: 2,
   width: 31,
-  length: 45,
-  positionX: 0,
-  positionY: 0,
-  heading: 0.0,
-  turretHeading: 0.0,
-  color: TankColors.None
+  length: 45
 }
 
-export const DemolitionTank: Tank = {
+export const DemolitionTank: TankInfo = {
   type: TankType.Demolition,
   health: 3,
   speed: 3,
   fireRate: 2,
   width: 35,
-  length: 49,
-  positionX: 0,
-  positionY: 0,
-  heading: 0.0,
-  turretHeading: 0.0,
-  color: TankColors.None
+  length: 49
 }

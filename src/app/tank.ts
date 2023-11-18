@@ -16,6 +16,7 @@ export enum TankType {
 
 export interface ServerTank {
   gamerName: string;
+  gameAdmin: boolean;
   type: TankType;
   alive: boolean;
   positionX: number;

@@ -9,6 +9,7 @@ export class GameService {
   gamerName: string = "";
   tankSelection: ServerTank = {
     gamerName: "",
+    gameAdmin: false,
     alive: false,
     type: TankType.None,
     positionX: 0,
@@ -53,6 +54,10 @@ export class GameService {
       return;
     }
 
+    this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
+      return true;
+    });
+
     this.socket = new WebSocket("wss://localhost:" + this.port.toString());
     this.socket.onopen = () => {
       console.log("Connected to waiting room!");
@@ -65,12 +70,18 @@ export class GameService {
       }
 
       this.socket.send(JSON.stringify(this.tankSelection));
+      this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
+        return false;
+      });
     };
 
     this.socket.onerror = (error) => {
       console.error(error);
       this.socket.close();
       window.alert("An error occurred. Please restart your game.");
+      this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
+        return false;
+      });
       this.stateService.dispatch<boolean>("showWaitingRoom", (initialState: boolean): boolean => {
         return false;
       });

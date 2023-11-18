@@ -10,3 +10,9 @@
   position: relative;
   width: 100vw;
 }
+
+#waitingRoom {
+  z-index: 2;
+  position: relative;
+  width: 100vw;
+}

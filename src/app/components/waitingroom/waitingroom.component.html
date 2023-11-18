@@ -1,1 +1,15 @@
-
+<div id="waitingRoomComponent">
+  <p id="title">WAITING ROOM</p>
+  <p id="gameCode">Game Code: {{gameCode}}</p>
+  <div id="tanksContainer">
+    <div *ngFor="let serverTank of serverTanks; index as i" class="tank" [ngClass]="{'blueTank': serverTank.color == 1, 'greenTank': serverTank.color == 2, 'orangeTank': serverTank.color == 3, 'redTank': serverTank.color == 4}">
+      <p class="gamerName">{{serverTank.gamerName}}</p>
+      <p class="tankName" *ngIf="serverTank.type == 1">Tank Tank</p>
+      <p class="tankName" *ngIf="serverTank.type == 2">Assault Tank</p>
+      <p class="tankName" *ngIf="serverTank.type == 3">Scout Tank</p>
+      <p class="tankName" *ngIf="serverTank.type == 4">Demolition Tank</p>
+      <div [ngClass]="{'tankTankImage': serverTank.type == 1, 'assaultTankImage': serverTank.type == 2, 'scoutTankImage': serverTank.type == 3, 'demolitionTankImage': serverTank.type == 4}"></div>
+    </div>
+  </div>
+  <button id="startButton" *ngIf="gameAdmin && serverTanks.length > 1">Start Round</button>
+</div>

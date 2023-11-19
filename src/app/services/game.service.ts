@@ -1,23 +1,13 @@
 import { Injectable } from '@angular/core';
 import { StateService } from './state.service';
-import { ServerTank, TankColors, TankType } from '../tank';
+import { EmptyTank, ServerTank, TankColors, TankType } from '../tank';
 
 @Injectable({
   providedIn: 'root'
 })
 export class GameService {
   gamerName: string = "";
-  tankSelection: ServerTank = {
-    gamerName: "",
-    gameAdmin: false,
-    alive: false,
-    type: TankType.None,
-    positionX: 0,
-    positionY: 0,
-    heading: 0.0,
-    turretHeading: 0.0,
-    color: TankColors.None
-  }
+  tankSelection: ServerTank = JSON.parse(JSON.stringify(EmptyTank));
   gameCode: string = "";
   port: number = -1;
   serverTanks: Array<ServerTank> = new Array<ServerTank>();
@@ -44,7 +34,36 @@ export class GameService {
     });
     this.stateService.select<Array<ServerTank>>("serverTanks").subscribe((serverTanks: Array<ServerTank>): void => {
       this.serverTanks = serverTanks;
+      if (this.tankSelection.color === TankColors.None) {
+        for (const tank of this.serverTanks) {
+          if (tank.gamerName === this.tankSelection.gamerName) {
+            this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
+              return {
+                ...initialState,
+                color: tank.color
+              };
+            });
+            break;
+          }
+        }
+      }
     });
+  }
+
+  getFirstMessage(serverTank: ServerTank): WssMessage {
+    const firstMessage: WssMessage = {
+      messageType: MessageTypes.First,
+      tank: serverTank
+    }
+    return firstMessage;
+  }
+
+  getGameMessage(serverTank: ServerTank): WssMessage {
+    const gameMessage: WssMessage = {
+      messageType: MessageTypes.Game,
+      tank: serverTank
+    }
+    return gameMessage;
   }
 
   connect() {
@@ -69,7 +88,7 @@ export class GameService {
         });
       }
 
-      this.socket.send(JSON.stringify(this.tankSelection));
+      this.socket.send(JSON.stringify(this.getFirstMessage(this.tankSelection)));
       this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
         return false;
       });
@@ -90,4 +109,47 @@ export class GameService {
       });
     };
   }
+
+  switchTanks(type: TankType) {
+    this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
+      return true;
+    });
+    this.tankSelection.type = type;
+    this.socket.send(JSON.stringify(this.getFirstMessage(this.tankSelection)));
+    this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
+      return {
+        ...initialState,
+        type: type
+      };
+    });
+    this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
+      return false;
+    });
+  }
+
+  leaveGame() {
+    this.socket.close();
+    this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
+      return JSON.parse(JSON.stringify(EmptyTank));
+    });
+    this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
+      return false;
+    });
+    this.stateService.dispatch<boolean>("showWaitingRoom", (initialState: boolean): boolean => {
+      return false;
+    });
+    this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
+      return true;
+    });
+  }
+}
+
+export enum MessageTypes {
+  First,
+  Game
+}
+
+export interface WssMessage {
+  messageType: MessageTypes,
+  tank: ServerTank
 }

@@ -25,7 +25,6 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
 
   constructor(private readonly stateService: StateService, private readonly http: HttpClient, private readonly gameService: GameService) {
     this.stateService.addSlice("showInstructions", false);
-    
     this.subscriptions.push(
       this.stateService.select<boolean>("showInstructions").subscribe((showInstructions: boolean): void => {
         this.showInstructions = showInstructions;
@@ -208,6 +207,7 @@ export class MenuComponent implements AfterViewInit, OnDestroy {
   }
 
   enterWaitingRoom(): void {
+    this.tankSelection = TankType.None;
     this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
       return false;
     });

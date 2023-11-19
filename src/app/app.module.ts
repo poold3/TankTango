@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { HttpClientModule } from '@angular/common/http';
+import { ClipboardModule } from 'ngx-clipboard';
 
 import { AppComponent } from './app.component';
 import { MenuComponent } from './components/menu/menu.component';
@@ -16,7 +17,8 @@ import { WaitingroomComponent } from './components/waitingroom/waitingroom.compo
   ],
   imports: [
     BrowserModule,
-    HttpClientModule
+    HttpClientModule,
+    ClipboardModule
   ],
   providers: [],
   bootstrap: [AppComponent]

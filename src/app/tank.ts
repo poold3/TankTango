@@ -70,3 +70,15 @@ export const DemolitionTank: TankInfo = {
   width: 35,
   length: 49
 }
+
+export const EmptyTank: ServerTank = {
+  gamerName: "",
+  gameAdmin: false,
+  alive: false,
+  type: TankType.None,
+  positionX: 0,
+  positionY: 0,
+  heading: 0.0,
+  turretHeading: 0.0,
+  color: TankColors.None
+}

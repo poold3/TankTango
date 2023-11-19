@@ -96,17 +96,8 @@ export class GameService {
 
     this.socket.onerror = (error) => {
       console.error(error);
-      this.socket.close();
       window.alert("An error occurred. Please restart your game.");
-      this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
-        return false;
-      });
-      this.stateService.dispatch<boolean>("showWaitingRoom", (initialState: boolean): boolean => {
-        return false;
-      });
-      this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
-        return true;
-      });
+      this.leaveGame();
     };
   }
 
@@ -114,14 +105,13 @@ export class GameService {
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
       return true;
     });
-    this.tankSelection.type = type;
-    this.socket.send(JSON.stringify(this.getFirstMessage(this.tankSelection)));
     this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
       return {
         ...initialState,
         type: type
       };
     });
+    this.socket.send(JSON.stringify(this.getFirstMessage(this.tankSelection)));
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
       return false;
     });
@@ -129,9 +119,22 @@ export class GameService {
 
   leaveGame() {
     this.socket.close();
+    this.stateService.dispatch("gamerName", (initialState: string): string => {
+      return "";
+    });
+    this.stateService.dispatch("gameCode", (initialState: string): string => {
+      return "";
+    });
+    this.stateService.dispatch("port", (initialState: number): number => {
+      return -1;
+    });
     this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
       return JSON.parse(JSON.stringify(EmptyTank));
     });
+    this.stateService.dispatch("serverTanks", (initialState: Array<ServerTank>): Array<ServerTank> => {
+      return new Array<ServerTank>();
+    });
+
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
       return false;
     });

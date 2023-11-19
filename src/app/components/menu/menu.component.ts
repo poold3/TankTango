@@ -1,4 +1,4 @@
-import { Component, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, OnDestroy, ViewChild, ElementRef, AfterViewInit, OnInit } from '@angular/core';
 import { EMPTY, Observable, Subject, Subscription, catchError, finalize, of, switchMap, timeout } from 'rxjs';
 import { CreateRequest, JoinRequest } from 'src/app/requests';
 import { StateService } from 'src/app/services/state.service';
@@ -12,19 +12,25 @@ import { GameService } from 'src/app/services/game.service';
   templateUrl: './menu.component.html',
   styleUrls: ['./menu.component.css']
 })
-export class MenuComponent implements AfterViewInit, OnDestroy {
+export class MenuComponent implements OnInit, AfterViewInit, OnDestroy {
   showInstructions: boolean = false;
   subscriptions: Subscription[] = new Array<Subscription>();
   @ViewChild("gamerNameInput") gamerNameInput!: ElementRef;
   gamerNameInputElement!: HTMLInputElement;
   gamerName!: string;
-  tankSelection: TankType = TankType.None;
-  createGame$ = new Subject<Observable<CreateResponse>>();
-  joinGame$ = new Subject<Observable<JoinResponse>>();
+  tankSelection!: TankType;
+  createGame$!: Subject<Observable<CreateResponse>>;
+  joinGame$!: Subject<Observable<JoinResponse>>;
 
 
   constructor(private readonly stateService: StateService, private readonly http: HttpClient, private readonly gameService: GameService) {
     this.stateService.addSlice("showInstructions", false);
+  }
+
+  ngOnInit(): void {
+    this.createGame$ = new Subject<Observable<CreateResponse>>();
+    this.joinGame$ = new Subject<Observable<JoinResponse>>();
+    this.subscriptions.length = 0;
     this.subscriptions.push(
       this.stateService.select<boolean>("showInstructions").subscribe((showInstructions: boolean): void => {
         this.showInstructions = showInstructions;

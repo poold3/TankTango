@@ -8,3 +8,7 @@ export interface JoinRequest {
   tankType: number;
   gameCode: string;
 }
+
+export interface StartRoundRequest {
+  gameCode: string;
+}

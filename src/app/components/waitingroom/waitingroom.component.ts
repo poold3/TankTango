@@ -67,4 +67,8 @@ export class WaitingroomComponent implements OnDestroy, OnInit {
   leaveGame() {
     this.gameService.leaveGame();
   }
+
+  startRound() {
+    this.gameService.startRound();
+  }
 }

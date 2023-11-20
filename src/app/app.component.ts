@@ -1,4 +1,4 @@
-import { Component, AfterViewInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
+import { Component, AfterViewInit, ViewChild, ElementRef, OnDestroy, OnInit } from '@angular/core';
 import { CanvasService } from './services/canvas.service';
 import { StateService } from './services/state.service';
 import { Subscription } from 'rxjs';
@@ -8,25 +8,33 @@ import { Subscription } from 'rxjs';
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-export class AppComponent implements AfterViewInit, OnDestroy {
+export class AppComponent implements AfterViewInit, OnInit, OnDestroy {
   @ViewChild("canvas") canvas!: ElementRef;
   canvasElement!: HTMLCanvasElement;
   ctx!: CanvasRenderingContext2D;
   showMenu: boolean = false;
   showWaitingRoom: boolean = false;
+  showGameRoom: boolean = false;
   isLoading: boolean = true;
   subscriptions: Subscription[] = new Array<Subscription>();
 
   constructor(private readonly stateService: StateService, private readonly canvasService: CanvasService) {
     this.stateService.addSlice("showMenu", this.showMenu);
     this.stateService.addSlice("showWaitingRoom", this.showWaitingRoom);
+    this.stateService.addSlice("showGameRoom", this.showGameRoom);
     this.stateService.addSlice("isLoading", this.isLoading);
+  }
+
+  ngOnInit(): void {
     this.subscriptions.push(
       this.stateService.select<boolean>("showMenu").subscribe((showMenu: boolean): void => {
         this.showMenu = showMenu;
       }),
       this.stateService.select<boolean>("showWaitingRoom").subscribe((showWaitingRoom: boolean): void => {
         this.showWaitingRoom = showWaitingRoom;
+      }),
+      this.stateService.select<boolean>("showGameRoom").subscribe((showGameRoom: boolean): void => {
+        this.showGameRoom = showGameRoom;
       }),
       this.stateService.select<boolean>("isLoading").subscribe((isLoading: boolean): void => {
         this.isLoading = isLoading;
@@ -60,6 +68,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.subscriptions.forEach((sub: Subscription) => {
       sub.unsubscribe();
     });
+    this.subscriptions.length = 0;
   }
 
   resizeCanvas(): void {

@@ -95,5 +95,5 @@
       <div [ngClass]="{'tankTankImage': serverTank.type == 1, 'assaultTankImage': serverTank.type == 2, 'scoutTankImage': serverTank.type == 3, 'demolitionTankImage': serverTank.type == 4}"></div>
     </div>
   </div>
-  <button id="startButton" *ngIf="gameAdmin && serverTanks.length > 1">Start Round</button>
+  <button id="startButton" (click)="startRound()" *ngIf="gameAdmin && serverTanks.length > 1">Start Round</button>
 </div>

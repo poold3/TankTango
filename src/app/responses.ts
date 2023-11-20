@@ -10,3 +10,8 @@ export interface JoinResponse {
   message: string;
   port: number;
 }
+
+export interface StartRoundResponse {
+  success: boolean;
+  message: string;
+}

@@ -7,13 +7,15 @@ import { AppComponent } from './app.component';
 import { MenuComponent } from './components/menu/menu.component';
 import { LoadingComponent } from './components/loading/loading.component';
 import { WaitingroomComponent } from './components/waitingroom/waitingroom.component';
+import { GameroomComponent } from './components/gameroom/gameroom.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     MenuComponent,
     LoadingComponent,
-    WaitingroomComponent
+    WaitingroomComponent,
+    GameroomComponent
   ],
   imports: [
     BrowserModule,

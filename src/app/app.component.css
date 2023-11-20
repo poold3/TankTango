@@ -16,3 +16,9 @@
   position: relative;
   width: 100vw;
 }
+
+#gameRoom {
+  z-index: 2;
+  position: relative;
+  width: 100vw;
+}

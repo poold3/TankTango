@@ -19,6 +19,8 @@ export interface ServerTank {
   gameAdmin: boolean;
   type: TankType;
   alive: boolean;
+  score: number;
+  ultimateActive: boolean;
   positionX: number;
   positionY: number;
   heading: number;
@@ -75,6 +77,8 @@ export const EmptyTank: ServerTank = {
   gamerName: "",
   gameAdmin: false,
   alive: false,
+  score: 0,
+  ultimateActive: false,
   type: TankType.None,
   positionX: 0,
   positionY: 0,

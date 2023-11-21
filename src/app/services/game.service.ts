@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
 import { StateService } from './state.service';
 import { EmptyTank, ServerTank, TankColors, TankType } from '../tank';
-import { CreateResponse, JoinResponse, StartRoundResponse } from '../responses';
+import { CreateResponse, JoinResponse, StartRoundResponse, WssInMessage, WssInMessageTypes } from '../responses';
 import { EMPTY, Observable, Subject, catchError, finalize, switchMap, timeout } from 'rxjs';
-import { CreateRequest, JoinRequest, StartRoundRequest } from '../requests';
+import { CreateRequest, JoinRequest, StartRoundRequest, WssOutMessage, WssOutMessageTypes } from '../requests';
 import { HttpClient } from '@angular/common/http';
+import { CanvasService } from './canvas.service';
 
 @Injectable({
   providedIn: 'root'
@@ -17,17 +18,19 @@ export class GameService {
   serverTanks: Array<ServerTank> = new Array<ServerTank>();
   socket!: WebSocket;
   maze: Maze = JSON.parse(JSON.stringify(EmptyMaze));
+  state: GameState = GameState.Waiting;
   createGame$: Subject<Observable<CreateResponse>> = new Subject<Observable<CreateResponse>>;
   joinGame$: Subject<Observable<JoinResponse>> = new Subject<Observable<JoinResponse>>;
   startRound$: Subject<Observable<StartRoundResponse>> = new Subject<Observable<StartRoundResponse>>;
 
-  constructor(private readonly stateService: StateService, private readonly http: HttpClient) {
+  constructor(private readonly stateService: StateService, private readonly http: HttpClient, private readonly canvasService: CanvasService) {
     this.stateService.addSlice("gamerName", this.gamerName);
     this.stateService.addSlice("tankSelection", this.tankSelection);
     this.stateService.addSlice("gameCode", this.gameCode);
     this.stateService.addSlice("port", this.port);
     this.stateService.addSlice("serverTanks", this.serverTanks);
     this.stateService.addSlice("maze", this.maze);
+    this.stateService.addSlice("state", this.state);
 
     this.stateService.select<string>("gamerName").subscribe((gamerName: string): void => {
       this.gamerName = gamerName;
@@ -43,22 +46,12 @@ export class GameService {
     });
     this.stateService.select<Array<ServerTank>>("serverTanks").subscribe((serverTanks: Array<ServerTank>): void => {
       this.serverTanks = serverTanks;
-      if (this.tankSelection.color === TankColors.None) {
-        for (const tank of this.serverTanks) {
-          if (tank.gamerName === this.tankSelection.gamerName) {
-            this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
-              return {
-                ...initialState,
-                color: tank.color
-              };
-            });
-            break;
-          }
-        }
-      }
     });
     this.stateService.select<Maze>("maze").subscribe((maze: Maze): void => {
       this.maze = maze;
+    });
+    this.stateService.select<GameState>("state").subscribe((state: GameState): void => {
+      this.state = state;
     });
     this.createGame$.pipe(
       switchMap((response: Observable<CreateResponse>) => response.pipe(
@@ -148,22 +141,6 @@ export class GameService {
     });
   }
 
-  getFirstMessage(serverTank: ServerTank): WssMessage {
-    const firstMessage: WssMessage = {
-      messageType: MessageTypes.First,
-      tank: serverTank
-    }
-    return firstMessage;
-  }
-
-  getGameMessage(serverTank: ServerTank): WssMessage {
-    const gameMessage: WssMessage = {
-      messageType: MessageTypes.Game,
-      tank: serverTank
-    }
-    return gameMessage;
-  }
-
   createGame() {
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
       return true;
@@ -192,42 +169,69 @@ export class GameService {
   }
 
   connect() {
+    // Double check credentials
     if (this.gamerName.trim().length === 0 || this.tankSelection.type === TankType.None ||
      this.tankSelection.gamerName !== this.gamerName || this.gameCode.length === 0 || this.port === -1) {
       window.alert("Unable to connect to game. Please retry later.");
       return;
     }
 
+    // Begin loading
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
       return true;
     });
 
+    // Connect to websocket
     this.socket = new WebSocket("wss://localhost:" + this.port.toString());
     this.socket.onopen = () => {
-      console.log("Connected to waiting room!");
 
       this.socket.onmessage = (event) => {
         const message: WssInMessage = JSON.parse(event.data);
-        if (message.tanks) {
-          const serverTanks: Array<ServerTank> = message.tanks;
+        if (message.messageType == WssInMessageTypes.TanksUpdate) {
+          const serverTanks: Array<ServerTank> = JSON.parse(message.data);
           this.stateService.dispatch("serverTanks", (initialState: Array<ServerTank>): Array<ServerTank> => {
             return serverTanks;
           });
-        } else if (message.maze) {
-          const maze: Maze = message.maze;
+        } else if (message.messageType == WssInMessageTypes.Maze) {
+          const maze: Maze = JSON.parse(message.data);
           this.stateService.dispatch("maze", (initialState: Maze): Maze => {
             return maze;
           });
-          this.stateService.dispatch<boolean>("showWaitingRoom", (initialState: boolean): boolean => {
-            return false;
+        } else if (message.messageType == WssInMessageTypes.GameStateUpdate) {
+          const newState: GameState = JSON.parse(message.data);
+          this.stateService.dispatch("state", (initialState: GameState): GameState => {
+            return newState;
           });
-          this.stateService.dispatch<boolean>("showGameRoom", (initialState: boolean): boolean => {
-            return true;
+        } else if (message.messageType == WssInMessageTypes.SelectedTankUpdate) {
+          // Same as Tanks Update but we want to update our local selected tank as well
+          const serverTanks: Array<ServerTank> = JSON.parse(message.data);
+          this.stateService.dispatch("serverTanks", (initialState: Array<ServerTank>): Array<ServerTank> => {
+            return serverTanks;
           });
+          for (let i = 0; i < serverTanks.length; ++i) {
+            if (serverTanks[i].gamerName === this.gamerName) {
+              this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
+                return JSON.parse(JSON.stringify(serverTanks[i]));
+              });
+              break;
+            }
+          }
+        } else if (message.messageType == WssInMessageTypes.Error) {
+          const errorMessage: string = JSON.parse(message.data);
+          console.error(errorMessage);
+          window.alert("An error occurred. Please restart your game.");
+          this.leaveGame();
         }
       }
 
-      this.socket.send(JSON.stringify(this.getFirstMessage(this.tankSelection)));
+      //Send our selected tank to the server
+      const message: WssOutMessage = {
+        messageType: WssOutMessageTypes.Connection,
+        data: JSON.stringify(this.tankSelection)
+      }
+      this.socket.send(JSON.stringify(message));
+
+      //Stop loading
       this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
         return false;
       });
@@ -241,16 +245,29 @@ export class GameService {
   }
 
   switchTanks(type: TankType) {
+    // Begin loading
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
       return true;
     });
+
+    // Update tankSelection
     this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
       return {
         ...initialState,
         type: type
       };
     });
-    this.socket.send(JSON.stringify(this.getFirstMessage(this.tankSelection)));
+
+    // Build message
+    const message: WssOutMessage = {
+      messageType: WssOutMessageTypes.WaitingRoomTankUpdate,
+      data: JSON.stringify(this.tankSelection)
+    }
+
+    // Send message
+    this.socket.send(JSON.stringify(message));
+
+    // Stop loading
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
       return false;
     });
@@ -269,7 +286,10 @@ export class GameService {
   }
 
   leaveGame() {
+    // Close websocket connection
     this.socket.close();
+
+    //Update all game variables
     this.stateService.dispatch("gamerName", (initialState: string): string => {
       return "";
     });
@@ -285,7 +305,14 @@ export class GameService {
     this.stateService.dispatch("serverTanks", (initialState: Array<ServerTank>): Array<ServerTank> => {
       return new Array<ServerTank>();
     });
+    this.stateService.dispatch("state", (initialState: GameState): GameState => {
+      return GameState.Waiting;
+    });
+    this.stateService.dispatch("maze", (initialState: Maze): Maze => {
+      return JSON.parse(JSON.stringify(EmptyMaze));
+    });
 
+    // Make sure we are not loading. Proceed to menu.
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
       return false;
     });
@@ -299,21 +326,7 @@ export class GameService {
       return true;
     });
   }
-}
 
-export enum MessageTypes {
-  First,
-  Game
-}
-
-export interface WssMessage {
-  messageType: MessageTypes,
-  tank: ServerTank
-}
-
-export interface WssInMessage {
-  tanks: Array<ServerTank> | undefined,
-  maze: Maze | undefined
 }
 
 export interface Room {
@@ -340,4 +353,10 @@ export const EmptyMaze: Maze = {
   numRoomsWide: 0,
   numRoomsHigh: 0,
   rooms: new Array<Array<Room>>()
+}
+
+export const enum GameState {
+  Waiting,
+  Countdown,
+  Running
 }

@@ -93,7 +93,8 @@
       <p class="tankName" *ngIf="serverTank.type == 3">Scout Tank</p>
       <p class="tankName" *ngIf="serverTank.type == 4">Demolition Tank</p>
       <div [ngClass]="{'tankTankImage': serverTank.type == 1, 'assaultTankImage': serverTank.type == 2, 'scoutTankImage': serverTank.type == 3, 'demolitionTankImage': serverTank.type == 4}"></div>
+      <p class="score">Score: {{serverTank.score}}</p>
     </div>
   </div>
-  <button id="startButton" (click)="startRound()" *ngIf="gameAdmin && serverTanks.length > 1">Start Round</button>
+  <button id="startButton" (click)="startRound()" *ngIf="tankSelection.gameAdmin && serverTanks.length > 1">Start Round</button>
 </div>

@@ -1,3 +1,6 @@
+import { GameState, Maze } from "./services/game.service";
+import { ServerTank } from "./tank";
+
 export interface CreateResponse {
   success: boolean;
   message: string;
@@ -14,4 +17,17 @@ export interface JoinResponse {
 export interface StartRoundResponse {
   success: boolean;
   message: string;
+}
+
+export enum WssInMessageTypes {
+  Maze,
+  TanksUpdate,
+  SelectedTankUpdate,
+  GameStateUpdate,
+  Error
+}
+
+export interface WssInMessage {
+  messageType: WssInMessageTypes,
+  data: string
 }

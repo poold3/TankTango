@@ -15,13 +15,11 @@ export class WaitingroomComponent implements OnDestroy, OnInit {
   serverTanks: Array<ServerTank> = new Array();
   gameCode: string = "";
   tankSelection!: ServerTank;
-  gameAdmin: boolean = false;
   showTankGuide: boolean = false;
 
   constructor(private readonly stateService: StateService, private clipboardService: ClipboardService, private readonly gameService: GameService) {}
 
   ngOnInit(): void {
-    this.gameAdmin = false;
     this.showTankGuide = false;
     this.subscriptions.length = 0;
     this.subscriptions.push(
@@ -31,18 +29,6 @@ export class WaitingroomComponent implements OnDestroy, OnInit {
       this.stateService.select<Array<ServerTank>>("serverTanks").subscribe((serverTanks: Array<ServerTank>): void => {
         console.log(serverTanks);
         this.serverTanks = serverTanks;
-        for (const tank of this.serverTanks){
-          if (tank.gameAdmin && tank.gamerName == this.tankSelection.gamerName) {
-            this.gameAdmin = true;
-            this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
-              return {
-                ...initialState,
-                gameAdmin: true
-              };
-            });
-            break;
-          }
-        }
       }),
       this.stateService.select<string>("gameCode").subscribe((gameCode: string): void => {
         this.gameCode = gameCode;

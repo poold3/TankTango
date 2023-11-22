@@ -110,9 +110,11 @@ export class GameService {
       switchMap((response: Observable<StartRoundResponse>) => response.pipe(
         timeout(10000),
         finalize(() => {
-          this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
-            return false;
-          });
+          if (this.state !== GameState.Countdown) {
+            this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
+              return false;
+            });
+          }
         }),
         catchError(error => {
           console.error(error);
@@ -348,6 +350,9 @@ export class GameService {
     this.stateService.dispatch<boolean>("showGameRoom", (initialState: boolean): boolean => {
       return true;
     });
+    this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
+      return true;
+    });
     
     this.canvasService.loadMazeInfo(this.maze);
     this.canvasService.clearMazeField();
@@ -356,7 +361,9 @@ export class GameService {
   }
 
   startRunning() {
-
+    this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
+      return false;
+    });
   }
 
 }

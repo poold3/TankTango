@@ -1,6 +1,6 @@
 <div id="scoreBoardComponent">
   <div id="scoreBoard">
-    <div *ngFor="let serverTank of serverTanks; index as i" class="tank" [ngClass]="{'ultimateActive': serverTank.alive == false, 'blue': serverTank.color == 1, 'green': serverTank.color == 2, 'orange': serverTank.color == 3, 'red': serverTank.color == 4}">
+    <div *ngFor="let serverTank of serverTanks; index as i" class="tank" [ngClass]="{'ultimateActive': serverTank.ultimateActive, 'blue': serverTank.color == 1, 'green': serverTank.color == 2, 'orange': serverTank.color == 3, 'red': serverTank.color == 4}">
       <p class="text">{{serverTank.gamerName}}</p>
       <p class="text">Score: {{serverTank.score}}</p>
     </div>

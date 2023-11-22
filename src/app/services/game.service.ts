@@ -76,12 +76,6 @@ export class GameService {
         this.stateService.dispatch<number>("port", (initialState: number): number => {
           return response.port;
         });
-        this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
-          return false;
-        });
-        this.stateService.dispatch<boolean>("showWaitingRoom", (initialState: boolean): boolean => {
-          return true;
-        });
         this.connect();
       } else {
         window.alert(response.message);
@@ -106,12 +100,6 @@ export class GameService {
         console.log(response);
         this.stateService.dispatch<number>("port", (initialState: number): number => {
           return response.port;
-        });
-        this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
-          return false;
-        });
-        this.stateService.dispatch<boolean>("showWaitingRoom", (initialState: boolean): boolean => {
-          return true;
         });
         this.connect();
       } else {
@@ -176,6 +164,8 @@ export class GameService {
       return;
     }
 
+    this.showWaitingRoom();
+
     // Begin loading
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
       return true;
@@ -202,6 +192,15 @@ export class GameService {
           this.stateService.dispatch("state", (initialState: GameState): GameState => {
             return newState;
           });
+
+          // Handle changes in game state
+          if (this.state === GameState.Waiting) {
+            this.showWaitingRoom();
+          } else if (this.state === GameState.Countdown) {
+            this.startCountdown();
+          } else if (this.state === GameState.Running) {
+            this.startRunning();
+          }
         } else if (message.messageType == WssInMessageTypes.SelectedTankUpdate) {
           // Same as Tanks Update but we want to update our local selected tank as well
           const serverTanks: Array<ServerTank> = JSON.parse(message.data);
@@ -325,6 +324,39 @@ export class GameService {
     this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
       return true;
     });
+  }
+
+  showWaitingRoom() {
+    this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
+      return false;
+    });
+    this.stateService.dispatch<boolean>("showGameRoom", (initialState: boolean): boolean => {
+      return false;
+    });
+    this.stateService.dispatch<boolean>("showWaitingRoom", (initialState: boolean): boolean => {
+      return true;
+    });
+  }
+
+  startCountdown() {
+    this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
+      return false;
+    });
+    this.stateService.dispatch<boolean>("showWaitingRoom", (initialState: boolean): boolean => {
+      return false;
+    });
+    this.stateService.dispatch<boolean>("showGameRoom", (initialState: boolean): boolean => {
+      return true;
+    });
+    
+    this.canvasService.loadMazeInfo(this.maze);
+    this.canvasService.clearMazeField();
+    this.canvasService.drawMaze();
+    this.canvasService.drawTanks(this.tankSelection, this.serverTanks);
+  }
+
+  startRunning() {
+
   }
 
 }

@@ -18,7 +18,7 @@
 
 .tank {
   width: 150px;
-  height: 75px;
+  height: 50px;
   margin: 10px;
   display: flex;
   flex-direction: column;

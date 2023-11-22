@@ -1,7 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { CanvasService } from 'src/app/services/canvas.service';
-import { Maze } from 'src/app/services/game.service';
 import { StateService } from 'src/app/services/state.service';
 import { ServerTank } from 'src/app/tank';
 

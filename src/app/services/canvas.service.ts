@@ -18,6 +18,7 @@ export class CanvasService {
   mazeNumRoomsHigh: number = 0;
   mazeRooms: Array<Array<Room>> = new Array<Array<Room>>();
   images!: TankImages;
+  downArrowImage!: HTMLImageElement;
 
   constructor() {
     this.backgroundImage = new Image();
@@ -31,6 +32,8 @@ export class CanvasService {
       demolitionBody: this.createImage("/assets/tanks/demolitionbody.png"),
       demolitionTurret: this.createImage("/assets/tanks/demolitionturret.png"),
     }
+    this.downArrowImage = new Image();
+    this.downArrowImage.src = "/assets/downarrow.png";
   }
 
   createImage(src: string): HTMLImageElement {
@@ -112,6 +115,14 @@ export class CanvasService {
     this.mazeRooms = maze.rooms;
   }
 
+  getMazeStartX() {
+    return this.mazeStartX;
+  }
+
+  getMazeStartY() {
+    return this.mazeStartY;
+  }
+
   clearMazeField() {
     this.ctx.clearRect(this.mazeStartX, this.mazeStartY, this.mazeWidth, this.mazeHeight);
   }
@@ -126,41 +137,42 @@ export class CanvasService {
     this.ctx.lineWidth = 2;
     this.ctx.strokeRect(this.mazeStartX, this.mazeStartY, this.mazeWidth, this.mazeHeight);
 
+    
     // Draw maze edges
+    this.ctx.beginPath();
     for (let i = 0; i < this.mazeNumRoomsHigh; ++i) {
       for (let j = 0; j < this.mazeNumRoomsWide; ++j) {
         const room: Room = this.mazeRooms[i][j];
         if (room.minusX) {
           this.ctx.moveTo(this.mazeStartX + (j * this.mazeStep), this.mazeStartY + (i * this.mazeStep));
           this.ctx.lineTo(this.mazeStartX + (j * this.mazeStep), this.mazeStartY + (i * this.mazeStep) + this.mazeStep);
-          this.ctx.stroke();
         }
         if (room.plusX) {
           this.ctx.moveTo(this.mazeStartX + (j * this.mazeStep) + this.mazeStep, this.mazeStartY + (i * this.mazeStep));
           this.ctx.lineTo(this.mazeStartX + (j * this.mazeStep) + this.mazeStep, this.mazeStartY + (i * this.mazeStep) + this.mazeStep);
-          this.ctx.stroke();
         }
         if (room.minusY) {
           this.ctx.moveTo(this.mazeStartX + (j * this.mazeStep), this.mazeStartY + (i * this.mazeStep));
           this.ctx.lineTo(this.mazeStartX + (j * this.mazeStep) + this.mazeStep, this.mazeStartY + (i * this.mazeStep));
-          this.ctx.stroke();
         }
         if (room.plusY) {
           this.ctx.moveTo(this.mazeStartX + (j * this.mazeStep), this.mazeStartY + (i * this.mazeStep) + this.mazeStep);
           this.ctx.lineTo(this.mazeStartX + (j * this.mazeStep) + this.mazeStep, this.mazeStartY + (i * this.mazeStep) + this.mazeStep);
-          this.ctx.stroke();
         }
       }
     }
+    this.ctx.stroke();
   }
 
   drawTanks(tankSelection: ServerTank, serverTanks: Array<ServerTank>) {
     serverTanks.forEach((tank: ServerTank) => {
       let tankToDraw: ServerTank;
+      let isSelectedTank: boolean = false;
       if (tank.gamerName !== tankSelection.gamerName) {
         tankToDraw = tank;
       } else {
         tankToDraw = tankSelection;
+        isSelectedTank = true;
       }
 
       if (!tankToDraw.alive) {
@@ -169,15 +181,20 @@ export class CanvasService {
 
       const tankWidth = this.getTankWidthByType(tankToDraw.type);
       const tankLength = this.getTankLengthByType(tankToDraw.type);
+
+      if (isSelectedTank && tankToDraw.positionY - 50 > -10.0) {
+        this.ctx.drawImage(this.downArrowImage, (tankToDraw.positionX + this.mazeStartX) - 12, (tankToDraw.positionY + this.mazeStartY) - 50);
+      }
+      
       this.ctx.translate((tankToDraw.positionX + this.mazeStartX), (tankToDraw.positionY + this.mazeStartY));
       this.ctx.rotate((tankToDraw.heading * Math.PI / 180.0) * -1.0);
       this.ctx.translate((tankToDraw.positionX + this.mazeStartX) * -1.0, (tankToDraw.positionY + this.mazeStartY) * -1.0);
-      this.ctx.drawImage(this.getTankBodyByType(tankToDraw.type), (tankToDraw.positionX + this.mazeStartX) - (tankLength / 2.0), (tankToDraw.positionY + this.mazeStartY) - (tankWidth / 2.0));
+      this.ctx.drawImage(this.getTankBodyByType(tankToDraw.type), (tankToDraw.positionX + this.mazeStartX) - (tankLength * 0.375), (tankToDraw.positionY + this.mazeStartY) - (tankWidth * 0.375), tankLength * 0.75, tankWidth * 0.75);
     
       this.ctx.translate((tankToDraw.positionX + this.mazeStartX), (tankToDraw.positionY + this.mazeStartY));
       this.ctx.rotate(((tankToDraw.turretHeading - tankToDraw.heading) * Math.PI / 180.0) * -1.0);
       this.ctx.translate((tankToDraw.positionX + this.mazeStartX) * -1.0, (tankToDraw.positionY + this.mazeStartY) * -1.0);
-      this.ctx.drawImage(this.getTankTurretByType(tankToDraw.type), (tankToDraw.positionX + this.mazeStartX) - (tankLength / 2.0), (tankToDraw.positionY + this.mazeStartY) - (tankWidth / 2.0));
+      this.ctx.drawImage(this.getTankTurretByType(tankToDraw.type), (tankToDraw.positionX + this.mazeStartX) - (tankLength * 0.375), (tankToDraw.positionY + this.mazeStartY) - (tankWidth * 0.375), tankLength * 0.75, tankWidth * 0.75);
       this.ctx.setTransform(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
     });
   }

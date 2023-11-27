@@ -29,6 +29,9 @@
   color: white;
   font-size: 15px;
   padding: 5px;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 .text {
@@ -53,64 +56,7 @@
 }
 
 .ultimateActive {
-  animation-name: ultimateShake;
-  animation-duration: 2s;
   background-color: red;
   background-color: rgba(255, 0, 0, 0.6);
-}
-
-@keyframes ultimateShake {
-  0%  {transform: translate(0px, 0px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  2%  {transform: translate(-2px, -2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  4%  {transform: translate(-4px, -4px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  6%  {transform: translate(-2px, -2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  8%  {transform: translate(0px, -4px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  10%  {transform: translate(2px, -2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  12%  {transform: translate(4px, 0px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  14%  {transform: translate(2px, 2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  16%  {transform: translate(0px, 0px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  18%  {transform: translate(-2px, 2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  20%  {transform: translate(-4px, 4px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  22%  {transform: translate(-2px, 2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  24%  {transform: translate(0px, 0px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  26%  {transform: translate(2px, -2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  28%  {transform: translate(4px, -4px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  30%  {transform: translate(2px, -2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  32%  {transform: translate(0px, 0px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  34%  {transform: translate(-2px, 2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  36%  {transform: translate(-4px, 4px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  38%  {transform: translate(-2px, 2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  40%  {transform: translate(0px, 0px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  42%  {transform: translate(-2px, -2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  44%  {transform: translate(-4px, -4px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  46%  {transform: translate(-2px, -2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  48%  {transform: translate(0px, -4px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  50%  {transform: translate(2px, -2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  52%  {transform: translate(4px, 0px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  54%  {transform: translate(2px, 2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  56%  {transform: translate(0px, 0px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  58%  {transform: translate(-2px, 2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  60%  {transform: translate(-4px, 4px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  55%  {transform: translate(-2px, 2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  60%  {transform: translate(0px, 0px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  62%  {transform: translate(2px, -2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  64%  {transform: translate(4px, -4px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  66%  {transform: translate(2px, -2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  68%  {transform: translate(0px, 0px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  70%  {transform: translate(-2px, 2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  72%  {transform: translate(-4px, 4px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  74%  {transform: translate(-2px, 2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  76%  {transform: translate(0px, 0px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  78%  {transform: translate(2px, -2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  80%  {transform: translate(4px, -4px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  82%  {transform: translate(2px, -2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  84%  {transform: translate(0px, 0px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  86%  {transform: translate(-2px, 2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  88%  {transform: translate(-4px, 4px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  90%  {transform: translate(-2px, 2px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  92%  {transform: translate(0px, 0px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  94%  {transform: translate(1px, -1px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  96%  {transform: translate(2px, 0px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  98%  {transform: translate(1px, 1px); background-color: red; background-color: rgba(255, 0, 0, 0.6);}
-  100%  {transform: translate(0px, 0px);}
+  transform: translateY(-10px);
 }

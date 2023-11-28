@@ -40,6 +40,12 @@ export class GameService {
     PlusY: false,
     MinusY: false
   }
+  correctMovement: StopMovement = {
+    PlusX: false,
+    MinusX: false,
+    PlusY: false,
+    MinusY: false
+  }
   tankReference: TankInfo = TankTank;
 
   constructor(private readonly stateService: StateService, private readonly http: HttpClient, private readonly canvasService: CanvasService) {
@@ -433,7 +439,8 @@ export class GameService {
     const elapsed = timeStamp - this.previousTime;
     this.previousTime = timeStamp;
 
-    
+    this.calculateCollisions();
+
     // Move Tank
     if (this.moveState !== MoveState.None) {
       const speed = this.moveSpeed * elapsed * 0.06;
@@ -445,8 +452,6 @@ export class GameService {
       } else if (this.moveState === MoveState.Backward) {
         horizontal *= -1.0;
       }
-
-      this.calculateCollisions();
 
       // Account for stopMovement
       if ((horizontal > 0.0 && this.stopMovement.PlusX) || (horizontal < 0.0 && this.stopMovement.MinusX)) {
@@ -461,16 +466,31 @@ export class GameService {
     }
 
     // Turn Tank
-    if (this.turnState === TurnState.Right) {
-      this.tankSelection.heading -= this.turnSpeed;
-      if (this.tankSelection.heading < 0.0) {
-        this.tankSelection.heading += 360.0;
+    if (this.turnState !== TurnState.None) {
+      if (this.turnState === TurnState.Right) {
+        this.tankSelection.heading -= this.turnSpeed;
+        if (this.tankSelection.heading < 0.0) {
+          this.tankSelection.heading += 360.0;
+        }
+      } else if (this.turnState === TurnState.Left) {
+        this.tankSelection.heading += this.turnSpeed;
+        if (this.tankSelection.heading >= 360.0) {
+          this.tankSelection.heading -= 360.0;
+        }
       }
-    } else if (this.turnState === TurnState.Left) {
-      this.tankSelection.heading += this.turnSpeed;
-      if (this.tankSelection.heading >= 360.0) {
-        this.tankSelection.heading -= 360.0;
-      }
+    }
+
+    // Correct Tank Position if neccessary
+    if (this.correctMovement.MinusX) {
+      this.tankSelection.positionX += 1;
+    } else if (this.correctMovement.PlusX) {
+      this.tankSelection.positionX -= 1;
+    }
+
+    if (this.correctMovement.MinusY) {
+      this.tankSelection.positionY += 1;
+    } else if (this.correctMovement.PlusY) {
+      this.tankSelection.positionY -= 1;
     }
 
     // Turn turret
@@ -543,6 +563,11 @@ export class GameService {
     this.stopMovement.MinusY = false;
     this.stopMovement.PlusY = false;
 
+    this.correctMovement.MinusX = false;
+    this.correctMovement.PlusX = false;
+    this.correctMovement.MinusY = false;
+    this.correctMovement.PlusY = false;
+
     // Find nearest borders
     const nearestIntersectionX = Math.round(this.tankSelection.positionX / this.maze.step);
     const nearestIntersectionValueX = nearestIntersectionX * this.maze.step;
@@ -582,14 +607,20 @@ export class GameService {
           for (let i = 0; i < rotatedPoints.length; ++i) {
             if (rotatedPoints[i].x >= nearestIntersectionValueX && rotatedPoints[i].y <= nearestIntersectionValueY) {
               this.stopMovement.PlusX = true;
-              break;
+              if (rotatedPoints[i].x >= nearestIntersectionValueX + 2) {
+                this.correctMovement.PlusX = true;
+                break;
+              }
             }
           }
         } else {
           for (let i = 0; i < rotatedPoints.length; ++i) {
             if (rotatedPoints[i].x <= nearestIntersectionValueX && rotatedPoints[i].y <= nearestIntersectionValueY) {
               this.stopMovement.MinusX = true;
-              break;
+              if (rotatedPoints[i].x <= nearestIntersectionValueX - 2) {
+                this.correctMovement.MinusX = true;
+                break;
+              }
             }
           }
         }
@@ -599,14 +630,20 @@ export class GameService {
           for (let i = 0; i < rotatedPoints.length; ++i) {
             if (rotatedPoints[i].y >= nearestIntersectionValueY && rotatedPoints[i].x <= nearestIntersectionValueX) {
               this.stopMovement.PlusY = true;
-              break;
+              if (rotatedPoints[i].y >= nearestIntersectionValueY + 2) {
+                this.correctMovement.PlusY = true;
+                break;
+              }
             }
           }
         } else {
           for (let i = 0; i < rotatedPoints.length; ++i) {
             if (rotatedPoints[i].y <= nearestIntersectionValueY && rotatedPoints[i].x <= nearestIntersectionValueX) {
               this.stopMovement.MinusY = true;
-              break;
+              if (rotatedPoints[i].y <= nearestIntersectionValueY - 2) {
+                this.correctMovement.MinusY = true;
+                break;
+              }
             }
           }
         }
@@ -620,14 +657,20 @@ export class GameService {
           for (let i = 0; i < rotatedPoints.length; ++i) {
             if (rotatedPoints[i].x >= nearestIntersectionValueX && rotatedPoints[i].y >= nearestIntersectionValueY) {
               this.stopMovement.PlusX = true;
-              break;
+              if (rotatedPoints[i].x >= nearestIntersectionValueX + 2) {
+                this.correctMovement.PlusX = true;
+                break;
+              }
             }
           }
         } else {
           for (let i = 0; i < rotatedPoints.length; ++i) {
             if (rotatedPoints[i].x <= nearestIntersectionValueX && rotatedPoints[i].y >= nearestIntersectionValueY) {
               this.stopMovement.MinusX = true;
-              break;
+              if (rotatedPoints[i].x <= nearestIntersectionValueX - 2) {
+                this.correctMovement.MinusX = true;
+                break;
+              }
             }
           }
         }
@@ -637,14 +680,20 @@ export class GameService {
           for (let i = 0; i < rotatedPoints.length; ++i) {
             if (rotatedPoints[i].y >= nearestIntersectionValueY && rotatedPoints[i].x <= nearestIntersectionValueX) {
               this.stopMovement.PlusY = true;
-              break;
+              if (rotatedPoints[i].y >= nearestIntersectionValueY + 2) {
+                this.correctMovement.PlusY = true;
+                break;
+              }
             }
           }
         } else {
           for (let i = 0; i < rotatedPoints.length; ++i) {
             if (rotatedPoints[i].y <= nearestIntersectionValueY && rotatedPoints[i].x <= nearestIntersectionValueX) {
               this.stopMovement.MinusY = true;
-              break;
+              if (rotatedPoints[i].y <= nearestIntersectionValueY - 2) {
+                this.correctMovement.MinusY = true;
+                break;
+              }
             }
           }
         }
@@ -658,14 +707,20 @@ export class GameService {
           for (let i = 0; i < rotatedPoints.length; ++i) {
             if (rotatedPoints[i].x >= nearestIntersectionValueX && rotatedPoints[i].y <= nearestIntersectionValueY) {
               this.stopMovement.PlusX = true;
-              break;
+              if (rotatedPoints[i].x >= nearestIntersectionValueX + 2) {
+                this.correctMovement.PlusX = true;
+                break;
+              }
             }
           }
         } else {
           for (let i = 0; i < rotatedPoints.length; ++i) {
             if (rotatedPoints[i].x <= nearestIntersectionValueX && rotatedPoints[i].y <= nearestIntersectionValueY) {
               this.stopMovement.MinusX = true;
-              break;
+              if (rotatedPoints[i].x <= nearestIntersectionValueX - 2) {
+                this.correctMovement.MinusX = true;
+                break;
+              }
             }
           }
         }
@@ -675,14 +730,20 @@ export class GameService {
           for (let i = 0; i < rotatedPoints.length; ++i) {
             if (rotatedPoints[i].y >= nearestIntersectionValueY && rotatedPoints[i].x >= nearestIntersectionValueX) {
               this.stopMovement.PlusY = true;
-              break;
+              if (rotatedPoints[i].y >= nearestIntersectionValueY + 2) {
+                this.correctMovement.PlusY = true;
+                break;
+              }
             }
           }
         } else {
           for (let i = 0; i < rotatedPoints.length; ++i) {
             if (rotatedPoints[i].y <= nearestIntersectionValueY && rotatedPoints[i].x >= nearestIntersectionValueX) {
               this.stopMovement.MinusY = true;
-              break;
+              if (rotatedPoints[i].y <= nearestIntersectionValueY - 2) {
+                this.correctMovement.MinusY = true;
+                break;
+              }
             }
           }
         }
@@ -696,14 +757,20 @@ export class GameService {
           for (let i = 0; i < rotatedPoints.length; ++i) {
             if (rotatedPoints[i].x >= nearestIntersectionValueX && rotatedPoints[i].y >= nearestIntersectionValueY) {
               this.stopMovement.PlusX = true;
-              break;
+              if (rotatedPoints[i].x >= nearestIntersectionValueX + 2) {
+                this.correctMovement.PlusX = true;
+                break;
+              }
             }
           }
         } else {
           for (let i = 0; i < rotatedPoints.length; ++i) {
             if (rotatedPoints[i].x <= nearestIntersectionValueX && rotatedPoints[i].y >= nearestIntersectionValueY) {
               this.stopMovement.MinusX = true;
-              break;
+              if (rotatedPoints[i].x <= nearestIntersectionValueX - 2) {
+                this.correctMovement.MinusX = true;
+                break;
+              }
             }
           }
         }
@@ -713,14 +780,20 @@ export class GameService {
           for (let i = 0; i < rotatedPoints.length; ++i) {
             if (rotatedPoints[i].y >= nearestIntersectionValueY && rotatedPoints[i].x >= nearestIntersectionValueX) {
               this.stopMovement.PlusY = true;
-              break;
+              if (rotatedPoints[i].y >= nearestIntersectionValueY + 2) {
+                this.correctMovement.PlusY = true;
+                break;
+              }
             }
           }
         } else {
           for (let i = 0; i < rotatedPoints.length; ++i) {
             if (rotatedPoints[i].y <= nearestIntersectionValueY && rotatedPoints[i].x >= nearestIntersectionValueX) {
               this.stopMovement.MinusY = true;
-              break;
+              if (rotatedPoints[i].y <= nearestIntersectionValueY - 2) {
+                this.correctMovement.MinusY = true;
+                break;
+              }
             }
           }
         }

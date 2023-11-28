@@ -85,8 +85,8 @@ AssaultTank.vertices.push(new Point(32, 1));
 export const ScoutTank: TankInfo = {
   type: TankType.Scout,
   health: 2,
-  speed: 4,
-  turnSpeed: 5,
+  speed: 3,
+  turnSpeed: 4,
   fireRate: 2,
   width: 31,
   length: 45,
@@ -103,8 +103,8 @@ ScoutTank.vertices.push(new Point(27, 1));
 export const DemolitionTank: TankInfo = {
   type: TankType.Demolition,
   health: 3,
-  speed: 3,
-  turnSpeed: 4,
+  speed: 2.5,
+  turnSpeed: 3.5,
   fireRate: 2,
   width: 35,
   length: 49,

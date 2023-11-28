@@ -124,7 +124,7 @@ export class CanvasService {
   }
 
   clearMazeField() {
-    this.ctx.clearRect(this.mazeStartX, this.mazeStartY, this.mazeWidth, this.mazeHeight);
+    this.ctx.clearRect(this.mazeStartX - 2, this.mazeStartY - 2, this.mazeWidth + 4, this.mazeHeight + 4);
   }
 
   drawMaze() {

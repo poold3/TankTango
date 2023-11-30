@@ -1,3 +1,17 @@
+sudo snap install core                         # Setup Snap as a package manager
+
+sudo snap refresh core                         # Make sure Snap is up to date
+
+sudo snap install --classic certbot            # install certbot
+
+sudo ln -s /snap/bin/certbot /usr/bin/certbot  # link so you can run certbot from anywhere
+
+sudo certbot --nginx -d cs260.click            # Request the certificate and configure NGINX to use it
+
+curl https://cs260.click                       # Use CURL to test that you can make an HTTPS request
+
+sudo certbot renew --dry-run                   # Test that auto renew will work
+
 # TankTango
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 16.1.3.

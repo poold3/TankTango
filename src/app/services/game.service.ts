@@ -7,6 +7,7 @@ import { CreateRequest, JoinRequest, StartRoundRequest, WssOutMessage, WssOutMes
 import { HttpClient } from '@angular/common/http';
 import { CanvasService } from './canvas.service';
 import { Point, rotatePoint } from '../point';
+import { Line } from '../line';
 
 @Injectable({
   providedIn: 'root'
@@ -35,12 +36,6 @@ export class GameService {
   mazeStartX: number = 0;
   mazeStartY: number = 0;
   stopMovement: StopMovement = {
-    PlusX: false,
-    MinusX: false,
-    PlusY: false,
-    MinusY: false
-  }
-  correctMovement: StopMovement = {
     PlusX: false,
     MinusX: false,
     PlusY: false,
@@ -478,19 +473,17 @@ export class GameService {
           this.tankSelection.heading -= 360.0;
         }
       }
-    }
 
-    // Correct Tank Position if neccessary
-    if (this.correctMovement.MinusX) {
-      this.tankSelection.positionX += 1;
-    } else if (this.correctMovement.PlusX) {
-      this.tankSelection.positionX -= 1;
-    }
-
-    if (this.correctMovement.MinusY) {
-      this.tankSelection.positionY += 1;
-    } else if (this.correctMovement.PlusY) {
-      this.tankSelection.positionY -= 1;
+      if (this.stopMovement.MinusX) {
+        this.tankSelection.positionX += 0.5;
+      } else if (this.stopMovement.PlusX) {
+        this.tankSelection.positionX -= 0.5;
+      }
+      if (this.stopMovement.MinusY) {
+        this.tankSelection.positionY += 0.5;
+      } else if (this.stopMovement.PlusY) {
+        this.tankSelection.positionY -= 0.5;
+      }
     }
 
     // Turn turret
@@ -563,11 +556,6 @@ export class GameService {
     this.stopMovement.MinusY = false;
     this.stopMovement.PlusY = false;
 
-    this.correctMovement.MinusX = false;
-    this.correctMovement.PlusX = false;
-    this.correctMovement.MinusY = false;
-    this.correctMovement.PlusY = false;
-
     // Find nearest borders
     const nearestIntersectionX = Math.round(this.tankSelection.positionX / this.maze.step);
     const nearestIntersectionValueX = nearestIntersectionX * this.maze.step;
@@ -596,209 +584,160 @@ export class GameService {
     const rotatedPoints: Array<Point> = new Array<Point>();
     const tankPoint: Point = new Point(this.tankSelection.positionX, this.tankSelection.positionY);
     for (let i = 0; i < this.tankReference.vertices.length; ++i) {
-      const rotatedPoint: Point = rotatePoint(this.tankReference.vertices[i], this.tankReference.center, (this.tankSelection.heading - 90) * Math.PI / 180.0);
+      const rotatedPoint: Point = rotatePoint(this.tankReference.vertices[i], this.tankReference.center, (this.tankSelection.heading - 90) * Math.PI / -180.0);
       rotatedPoints.push(rotatedPoint.subtract(this.tankReference.center).multiplyScalar(0.75).add(tankPoint));
     }
 
-    // Compute stops for upper left
+    // Build rotated edges
+    const rotatedEdges: Array<Line> = new Array<Line>();
+    for (let i = 0; i < rotatedPoints.length; ++i) {
+      if (i < rotatedPoints.length - 1) {
+        rotatedEdges.push(new Line(rotatedPoints[i], rotatedPoints[i + 1]));
+      } else {
+        rotatedEdges.push(new Line(rotatedPoints[i], rotatedPoints[0]));
+      }
+    }
+
+    // Set corner signature
+    let minusY = false;
+    let plusY = false;
+    let minusX = false;
+    let plusX = false;
+
     if (upperLeftRoom) {
-      if (upperLeftRoom.plusX && !this.stopMovement.PlusX && !this.stopMovement.MinusX) {
-        if (this.tankSelection.positionX < nearestIntersectionValueX) {
-          for (let i = 0; i < rotatedPoints.length; ++i) {
-            if (rotatedPoints[i].x >= nearestIntersectionValueX && rotatedPoints[i].y <= nearestIntersectionValueY) {
-              this.stopMovement.PlusX = true;
-              if (rotatedPoints[i].x >= nearestIntersectionValueX + 2) {
-                this.correctMovement.PlusX = true;
-                break;
-              }
-            }
-          }
-        } else {
-          for (let i = 0; i < rotatedPoints.length; ++i) {
-            if (rotatedPoints[i].x <= nearestIntersectionValueX && rotatedPoints[i].y <= nearestIntersectionValueY) {
-              this.stopMovement.MinusX = true;
-              if (rotatedPoints[i].x <= nearestIntersectionValueX - 2) {
-                this.correctMovement.MinusX = true;
-                break;
-              }
-            }
-          }
-        }
+      if (upperLeftRoom.plusX) {
+        minusY = true;
       }
-      if (upperLeftRoom.plusY && !this.stopMovement.PlusY && !this.stopMovement.MinusY) {
-        if (this.tankSelection.positionY < nearestIntersectionValueY) {
-          for (let i = 0; i < rotatedPoints.length; ++i) {
-            if (rotatedPoints[i].y >= nearestIntersectionValueY && rotatedPoints[i].x <= nearestIntersectionValueX) {
-              this.stopMovement.PlusY = true;
-              if (rotatedPoints[i].y >= nearestIntersectionValueY + 2) {
-                this.correctMovement.PlusY = true;
-                break;
-              }
-            }
-          }
-        } else {
-          for (let i = 0; i < rotatedPoints.length; ++i) {
-            if (rotatedPoints[i].y <= nearestIntersectionValueY && rotatedPoints[i].x <= nearestIntersectionValueX) {
-              this.stopMovement.MinusY = true;
-              if (rotatedPoints[i].y <= nearestIntersectionValueY - 2) {
-                this.correctMovement.MinusY = true;
-                break;
-              }
-            }
-          }
-        }
+      if (upperLeftRoom.plusY) {
+        minusX = true;
       }
     }
-
-    // Compute stops for lower left
     if (lowerLeftRoom) {
-      if (lowerLeftRoom.plusX && !this.stopMovement.PlusX && !this.stopMovement.MinusX) {
-        if (this.tankSelection.positionX < nearestIntersectionValueX) {
-          for (let i = 0; i < rotatedPoints.length; ++i) {
-            if (rotatedPoints[i].x >= nearestIntersectionValueX && rotatedPoints[i].y >= nearestIntersectionValueY) {
-              this.stopMovement.PlusX = true;
-              if (rotatedPoints[i].x >= nearestIntersectionValueX + 2) {
-                this.correctMovement.PlusX = true;
-                break;
-              }
-            }
-          }
-        } else {
-          for (let i = 0; i < rotatedPoints.length; ++i) {
-            if (rotatedPoints[i].x <= nearestIntersectionValueX && rotatedPoints[i].y >= nearestIntersectionValueY) {
-              this.stopMovement.MinusX = true;
-              if (rotatedPoints[i].x <= nearestIntersectionValueX - 2) {
-                this.correctMovement.MinusX = true;
-                break;
-              }
-            }
-          }
-        }
+      if (lowerLeftRoom.plusX) {
+        plusY = true;
       }
-      if (lowerLeftRoom.minusY && !this.stopMovement.PlusY && !this.stopMovement.MinusY) {
-        if (this.tankSelection.positionY < nearestIntersectionValueY) {
-          for (let i = 0; i < rotatedPoints.length; ++i) {
-            if (rotatedPoints[i].y >= nearestIntersectionValueY && rotatedPoints[i].x <= nearestIntersectionValueX) {
-              this.stopMovement.PlusY = true;
-              if (rotatedPoints[i].y >= nearestIntersectionValueY + 2) {
-                this.correctMovement.PlusY = true;
-                break;
-              }
-            }
-          }
-        } else {
-          for (let i = 0; i < rotatedPoints.length; ++i) {
-            if (rotatedPoints[i].y <= nearestIntersectionValueY && rotatedPoints[i].x <= nearestIntersectionValueX) {
-              this.stopMovement.MinusY = true;
-              if (rotatedPoints[i].y <= nearestIntersectionValueY - 2) {
-                this.correctMovement.MinusY = true;
-                break;
-              }
-            }
-          }
-        }
+      if (lowerLeftRoom.minusY) {
+        minusX = true;
       }
     }
-
-    // Compute stops for upper right
     if (upperRightRoom) {
-      if (upperRightRoom.minusX && !this.stopMovement.PlusX && !this.stopMovement.MinusX) {
-        if (this.tankSelection.positionX < nearestIntersectionValueX) {
-          for (let i = 0; i < rotatedPoints.length; ++i) {
-            if (rotatedPoints[i].x >= nearestIntersectionValueX && rotatedPoints[i].y <= nearestIntersectionValueY) {
-              this.stopMovement.PlusX = true;
-              if (rotatedPoints[i].x >= nearestIntersectionValueX + 2) {
-                this.correctMovement.PlusX = true;
-                break;
-              }
-            }
-          }
-        } else {
-          for (let i = 0; i < rotatedPoints.length; ++i) {
-            if (rotatedPoints[i].x <= nearestIntersectionValueX && rotatedPoints[i].y <= nearestIntersectionValueY) {
-              this.stopMovement.MinusX = true;
-              if (rotatedPoints[i].x <= nearestIntersectionValueX - 2) {
-                this.correctMovement.MinusX = true;
-                break;
-              }
-            }
+      if (upperRightRoom.minusX) {
+        minusY = true;
+      }
+      if (upperRightRoom.plusY) {
+        plusX = true;
+      }
+    }
+    if (lowerRightRoom) {
+      if (lowerRightRoom.minusX) {
+        plusY = true;
+      }
+      if (lowerRightRoom.minusY) {
+        plusX = true;
+      }
+    }
+
+    // Compute stops on exposed intersection points
+    if ((minusY || plusY || minusX || plusX) && this.intersects(new Point(nearestIntersectionValueX, nearestIntersectionValueY), this.maze.step, rotatedEdges)) {
+      let headingToIntersection = Math.atan2((nearestIntersectionValueY - this.tankSelection.positionY) * -1.0, nearestIntersectionValueX - this.tankSelection.positionX) * 180.0 / Math.PI;
+      if (headingToIntersection < 0.0) {
+        headingToIntersection += 360.0;
+      } else if (headingToIntersection >= 360.0) {
+        headingToIntersection -= 360.0;
+      }
+
+      if (headingToIntersection > 0.0 && headingToIntersection < 180.0) {
+        this.stopMovement.MinusY = true;
+      } else if (headingToIntersection > 180.0 && headingToIntersection < 360.0) {
+        this.stopMovement.PlusY = true;
+      } else if (headingToIntersection == 0.0) {
+        this.stopMovement.PlusX = true;
+      } else if (headingToIntersection == 180.0) {
+        this.stopMovement.MinusX = true;
+      }
+
+      if ((headingToIntersection >= 0.0 && headingToIntersection < 90.0) || (headingToIntersection > 270.0 && headingToIntersection < 360.0)) {
+        this.stopMovement.PlusX = true;
+      } else if (headingToIntersection > 90.0 && headingToIntersection < 270.0) {
+        this.stopMovement.MinusX = true;
+      }
+    }
+
+    const WALL_SPACE = 2;
+    // Compute stops
+    for (let i = 0; i < rotatedPoints.length; ++i) {
+      if (minusY && !this.stopMovement.PlusX && !this.stopMovement.MinusX) {
+        if (Math.abs(rotatedPoints[i].x - nearestIntersectionValueX) < WALL_SPACE && rotatedPoints[i].y < nearestIntersectionValueY) {
+          if (this.tankSelection.positionX < nearestIntersectionValueX) {
+            this.stopMovement.PlusX = true;
+          } else {
+            this.stopMovement.MinusX = true;
           }
         }
       }
-      if (upperRightRoom.plusY && !this.stopMovement.PlusY && !this.stopMovement.MinusY) {
-        if (this.tankSelection.positionY < nearestIntersectionValueY) {
-          for (let i = 0; i < rotatedPoints.length; ++i) {
-            if (rotatedPoints[i].y >= nearestIntersectionValueY && rotatedPoints[i].x >= nearestIntersectionValueX) {
-              this.stopMovement.PlusY = true;
-              if (rotatedPoints[i].y >= nearestIntersectionValueY + 2) {
-                this.correctMovement.PlusY = true;
-                break;
-              }
-            }
+      if (plusY && !this.stopMovement.PlusX && !this.stopMovement.MinusX) {
+        if (Math.abs(rotatedPoints[i].x - nearestIntersectionValueX) < WALL_SPACE && rotatedPoints[i].y > nearestIntersectionValueY) {
+          if (this.tankSelection.positionX < nearestIntersectionValueX) {
+            this.stopMovement.PlusX = true;
+          } else {
+            this.stopMovement.MinusX = true;
           }
-        } else {
-          for (let i = 0; i < rotatedPoints.length; ++i) {
-            if (rotatedPoints[i].y <= nearestIntersectionValueY && rotatedPoints[i].x >= nearestIntersectionValueX) {
-              this.stopMovement.MinusY = true;
-              if (rotatedPoints[i].y <= nearestIntersectionValueY - 2) {
-                this.correctMovement.MinusY = true;
-                break;
-              }
-            }
+        }
+      }
+      if (minusX && !this.stopMovement.PlusY && !this.stopMovement.MinusY) {
+        if (Math.abs(rotatedPoints[i].y - nearestIntersectionValueY) < WALL_SPACE && rotatedPoints[i].x < nearestIntersectionValueX) {
+          if (this.tankSelection.positionY < nearestIntersectionValueY) {
+            this.stopMovement.PlusY = true;
+          } else {
+            this.stopMovement.MinusY = true;
           }
+        }
+      }
+      if (plusX && !this.stopMovement.PlusY && !this.stopMovement.MinusY) {
+        if (Math.abs(rotatedPoints[i].y - nearestIntersectionValueY) < WALL_SPACE && rotatedPoints[i].x > nearestIntersectionValueX) {
+          if (this.tankSelection.positionY < nearestIntersectionValueY) {
+            this.stopMovement.PlusY = true;
+          } else {
+            this.stopMovement.MinusY = true;
+          }
+        }
+      }
+    }
+  }
+
+  intersects(point: Point, lineLength: number, edges: Array<Line>): boolean {
+    // Build intersection line
+    const intersectionLine: Line = new Line(new Point(point.x, point.y), new Point(point.x + lineLength, point.y));
+
+    // If the intersection point is inside or on the edges, correct tank position
+    let intersections = 0;
+    for (let i = 0; i < edges.length; ++i) {
+      if (intersectionLine.p1.y == edges[i].p1.y && intersectionLine.p1.x <= edges[i].p1.x && edges[i].p1.x <= intersectionLine.p2.x) {
+        intersections += 1;
+      } else if (intersectionLine.p1.y == edges[i].p2.y && intersectionLine.p1.x <= edges[i].p2.x && edges[i].p2.x <= intersectionLine.p2.x) {
+        intersections += 1;
+      } else if ((intersectionLine.p1.y > edges[i].p1.y && intersectionLine.p1.y < edges[i].p2.y) || (intersectionLine.p1.y < edges[i].p1.y && intersectionLine.p1.y > edges[i].p2.y)) {
+        const m = this.correctHeading(Math.atan2((edges[i].p1.y - edges[i].p2.y) * -1.0, edges[i].p1.x - edges[i].p2.x) * 180.0 / Math.PI);
+        const m1 = this.correctHeading(Math.atan2((intersectionLine.p1.y - edges[i].p2.y) * -1.0, intersectionLine.p1.x - edges[i].p2.x) * 180.0 / Math.PI);
+        const m2 = this.correctHeading(Math.atan2((intersectionLine.p2.y - edges[i].p2.y) * -1.0, intersectionLine.p2.x - edges[i].p2.x) * 180.0 / Math.PI);
+        if ((m === m1 && m !== m2) || (m === m2 && m !== m1)) {
+          intersections += 1;
+        } else if ((m > m1 && m < m2) || (m < m1 && m > m2)) {
+          intersections += 1;
         }
       }
     }
 
-    // Compute stops for lower right
-    if (lowerRightRoom) {
-      if (lowerRightRoom.minusX && !this.stopMovement.PlusX && !this.stopMovement.MinusX) {
-        if (this.tankSelection.positionX < nearestIntersectionValueX) {
-          for (let i = 0; i < rotatedPoints.length; ++i) {
-            if (rotatedPoints[i].x >= nearestIntersectionValueX && rotatedPoints[i].y >= nearestIntersectionValueY) {
-              this.stopMovement.PlusX = true;
-              if (rotatedPoints[i].x >= nearestIntersectionValueX + 2) {
-                this.correctMovement.PlusX = true;
-                break;
-              }
-            }
-          }
-        } else {
-          for (let i = 0; i < rotatedPoints.length; ++i) {
-            if (rotatedPoints[i].x <= nearestIntersectionValueX && rotatedPoints[i].y >= nearestIntersectionValueY) {
-              this.stopMovement.MinusX = true;
-              if (rotatedPoints[i].x <= nearestIntersectionValueX - 2) {
-                this.correctMovement.MinusX = true;
-                break;
-              }
-            }
-          }
-        }
-      }
-      if (lowerRightRoom.minusY && !this.stopMovement.PlusY && !this.stopMovement.MinusY) {
-        if (this.tankSelection.positionY < nearestIntersectionValueY) {
-          for (let i = 0; i < rotatedPoints.length; ++i) {
-            if (rotatedPoints[i].y >= nearestIntersectionValueY && rotatedPoints[i].x >= nearestIntersectionValueX) {
-              this.stopMovement.PlusY = true;
-              if (rotatedPoints[i].y >= nearestIntersectionValueY + 2) {
-                this.correctMovement.PlusY = true;
-                break;
-              }
-            }
-          }
-        } else {
-          for (let i = 0; i < rotatedPoints.length; ++i) {
-            if (rotatedPoints[i].y <= nearestIntersectionValueY && rotatedPoints[i].x >= nearestIntersectionValueX) {
-              this.stopMovement.MinusY = true;
-              if (rotatedPoints[i].y <= nearestIntersectionValueY - 2) {
-                this.correctMovement.MinusY = true;
-                break;
-              }
-            }
-          }
-        }
-      }
+    return intersections % 2 === 1;
+  }
+
+  correctHeading(heading: number): number {
+    if (heading < 0.0) {
+      heading += 360.0;
+    } else if (heading >= 360.0) {
+      heading -= 360.0;
     }
+    return heading;
   }
 
 }

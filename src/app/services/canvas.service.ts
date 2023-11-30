@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Maze, Room } from './game.service';
 import { AssaultTank, DemolitionTank, ScoutTank, ServerTank, TankTank, TankType } from '../tank';
+import { Point } from '../point';
 
 @Injectable({
   providedIn: 'root'
@@ -198,7 +199,6 @@ export class CanvasService {
       this.ctx.setTransform(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
     });
   }
-
 }
 
 export interface TankImages {

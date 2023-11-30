@@ -24,6 +24,8 @@ export enum WssInMessageTypes {
   TanksUpdate,
   SelectedTankUpdate,
   GameStateUpdate,
+  NewBullet,
+  EraseBullet,
   Error
 }
 

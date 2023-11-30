@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { CanvasService } from 'src/app/services/canvas.service';
+import { GameService } from 'src/app/services/game.service';
 import { StateService } from 'src/app/services/state.service';
 import { ServerTank } from 'src/app/tank';
 
@@ -13,7 +14,7 @@ export class GameroomComponent implements OnInit, OnDestroy {
   subscriptions: Array<Subscription> = new Array<Subscription>();
   serverTanks!: Array<ServerTank>;
 
-  constructor(private readonly stateService: StateService, private readonly canvasService: CanvasService) { }
+  constructor(private readonly stateService: StateService, private readonly gameService: GameService) { }
 
   ngOnInit(): void {
     this.subscriptions.length = 0;
@@ -22,11 +23,19 @@ export class GameroomComponent implements OnInit, OnDestroy {
         this.serverTanks = serverTanks;
       })
     );
+    document.addEventListener("mousemove", this.gameService.mouseMoveHandler);
+    document.addEventListener("mousedown", this.gameService.mouseClickHandler);
+    document.addEventListener("keydown", this.gameService.keyDownHandler);
+    document.addEventListener("keyup", this.gameService.keyUpHandler);
   }
 
   ngOnDestroy(): void {
     this.subscriptions.forEach((sub: Subscription) => {
       sub.unsubscribe();
     });
+    document.removeEventListener("mousemove", this.gameService.mouseMoveHandler);
+    document.removeEventListener("mousedown", this.gameService.mouseClickHandler);
+    document.removeEventListener("keydown", this.gameService.keyDownHandler);
+    document.removeEventListener("keyup", this.gameService.keyUpHandler);
   }
 }

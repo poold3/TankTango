@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Maze, Room } from './game.service';
 import { AssaultTank, DemolitionTank, ScoutTank, ServerTank, TankTank, TankType } from '../tank';
-import { Point } from '../point';
+import { Bullet, BulletInfo } from '../bullet';
 
 @Injectable({
   providedIn: 'root'
@@ -197,6 +197,15 @@ export class CanvasService {
       this.ctx.translate((tankToDraw.positionX + this.mazeStartX) * -1.0, (tankToDraw.positionY + this.mazeStartY) * -1.0);
       this.ctx.drawImage(this.getTankTurretByType(tankToDraw.type), (tankToDraw.positionX + this.mazeStartX) - (tankLength * 0.375), (tankToDraw.positionY + this.mazeStartY) - (tankWidth * 0.375), tankLength * 0.75, tankWidth * 0.75);
       this.ctx.setTransform(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+    });
+  }
+
+  drawBullets(bullets: Array<Bullet>) {
+    this.ctx.fillStyle = "black";
+    bullets.forEach((bullet: Bullet) => {
+      this.ctx.beginPath();
+      this.ctx.arc(bullet.positionX + this.mazeStartX, bullet.positionY + this.mazeStartY, BulletInfo.radius, 0, 2 * Math.PI);
+      this.ctx.fill();
     });
   }
 }

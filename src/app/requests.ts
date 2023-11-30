@@ -18,7 +18,9 @@ export interface StartRoundRequest {
 export enum WssOutMessageTypes {
   Connection,
   WaitingRoomTankUpdate,
-  TankUpdate
+  TankUpdate,
+  NewBullet,
+  EraseBullet
 }
 
 export interface WssOutMessage {

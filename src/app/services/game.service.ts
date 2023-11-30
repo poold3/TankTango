@@ -8,6 +8,8 @@ import { HttpClient } from '@angular/common/http';
 import { CanvasService } from './canvas.service';
 import { Point, rotatePoint } from '../point';
 import { Line } from '../line';
+import { Bullet, BulletInfo, ServerBullet } from '../bullet';
+import {v4 as uuidv4} from 'uuid'
 
 @Injectable({
   providedIn: 'root'
@@ -18,6 +20,7 @@ export class GameService {
   gameCode: string = "";
   port: number = -1;
   serverTanks: Array<ServerTank> = new Array<ServerTank>();
+  bullets: Array<Bullet> = new Array<Bullet>();
   socket!: WebSocket;
   maze: Maze = JSON.parse(JSON.stringify(EmptyMaze));
   state: GameState = GameState.Waiting;
@@ -27,6 +30,7 @@ export class GameService {
   mousePositionX: number = 0;
   mousePositionY: number = 0;
   bulletsAvailable: number = 0;
+  health: number = 0;
   moveState: MoveState = MoveState.None;
   turnState: TurnState = TurnState.None;
   ultimateAvailable: boolean = false;
@@ -42,6 +46,8 @@ export class GameService {
     MinusY: false
   }
   tankReference: TankInfo = TankTank;
+  animationRequest: number = 0;
+  timeouts: Array<number> = new Array<number>();
 
   constructor(private readonly stateService: StateService, private readonly http: HttpClient, private readonly canvasService: CanvasService) {
     this.stateService.addSlice("gamerName", this.gamerName);
@@ -51,6 +57,7 @@ export class GameService {
     this.stateService.addSlice("serverTanks", this.serverTanks);
     this.stateService.addSlice("maze", this.maze);
     this.stateService.addSlice("state", this.state);
+    this.stateService.addSlice("health", this.health);
 
     this.stateService.select<string>("gamerName").subscribe((gamerName: string): void => {
       this.gamerName = gamerName;
@@ -72,6 +79,9 @@ export class GameService {
     });
     this.stateService.select<GameState>("state").subscribe((state: GameState): void => {
       this.state = state;
+    });
+    this.stateService.select<number>("health").subscribe((health: number): void => {
+      this.health = health;
     });
     this.createGame$.pipe(
       switchMap((response: Observable<CreateResponse>) => response.pipe(
@@ -204,6 +214,17 @@ export class GameService {
           this.stateService.dispatch("serverTanks", (initialState: Array<ServerTank>): Array<ServerTank> => {
             return serverTanks;
           });
+        } else if (message.messageType == WssInMessageTypes.NewBullet) {
+          const newBullet: ServerBullet = JSON.parse(message.data);
+          this.bullets.push(new Bullet(newBullet.id, newBullet.positionX, newBullet.positionY, newBullet.heading, newBullet.demolition));
+        } else if (message.messageType == WssInMessageTypes.EraseBullet) {
+          const bulletId: string = JSON.parse(message.data);
+          for (let i = 0; i < this.bullets.length; ++i) {
+            if (this.bullets[i].id === bulletId) {
+              this.bullets.splice(i, 1);
+              break;
+            }
+          }
         } else if (message.messageType == WssInMessageTypes.Maze) {
           const maze: Maze = JSON.parse(message.data);
           this.stateService.dispatch("maze", (initialState: Maze): Maze => {
@@ -349,6 +370,14 @@ export class GameService {
   }
 
   showWaitingRoom() {
+    this.canvasService.setBackground("assets/menu_background.jpg");
+
+    window.cancelAnimationFrame(this.animationRequest);
+    this.timeouts.forEach((timeout: number) => {
+      window.clearTimeout(timeout);
+    });
+    this.timeouts.length = 0;
+
     this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
       return false;
     });
@@ -392,6 +421,7 @@ export class GameService {
     this.stopMovement.MinusY = false;
     this.stopMovement.PlusX = false;
     this.stopMovement.PlusY = false;
+    this.bullets.length = 0;
     if (this.tankSelection.type === TankType.Tank) {
       this.bulletsAvailable = TankTank.fireRate;
       this.turnSpeed = TankTank.turnSpeed;
@@ -413,18 +443,17 @@ export class GameService {
       this.moveSpeed = DemolitionTank.speed;
       this.tankReference = DemolitionTank;
     }
+    this.stateService.dispatch("health", (initialState: number): number => {
+      return this.tankReference.health;
+    });
   }
 
   startRunning() {
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
       return false;
     });
-    document.addEventListener("mousemove", this.mouseMoveHandler.bind(this));
-    document.addEventListener("mousedown", this.mouseClickHandler.bind(this));
-    document.addEventListener("keydown", this.keyDownHandler.bind(this));
-    document.addEventListener("keyup", this.keyUpHandler.bind(this));
 
-    window.requestAnimationFrame(this.animationFrame.bind(this));
+    this.animationRequest = window.requestAnimationFrame(this.animationFrame.bind(this));
   }
 
   animationFrame(timeStamp: number) {
@@ -434,7 +463,7 @@ export class GameService {
     const elapsed = timeStamp - this.previousTime;
     this.previousTime = timeStamp;
 
-    this.calculateCollisions();
+    const rotatedEdges: Array<Line> = this.calculateCollisions();
 
     // Move Tank
     if (this.moveState !== MoveState.None) {
@@ -489,6 +518,55 @@ export class GameService {
     // Turn turret
     this.tankSelection.turretHeading = Math.atan2(((this.mousePositionY - this.mazeStartY) - this.tankSelection.positionY) * -1.0, (this.mousePositionX - this.mazeStartX) - this.tankSelection.positionX) * 180.0 / Math.PI;
 
+    //Update bullet positions and collisions
+    for (let i = 0; i < this.bullets.length; ++i) {
+      // Remove bullet if timeout
+      if (!this.bullets[i].isAlive()) {
+        this.bullets.splice(i, 1);
+        i -= 1;
+        continue;
+      }
+
+      // Compute bounces
+      const roomX = Math.floor(this.bullets[i].positionX / this.maze.step);
+      const roomY = Math.floor(this.bullets[i].positionY / this.maze.step);
+      const room: Room = this.maze.rooms[roomY][roomX];
+      if (room.plusX && ((roomX + 1) * this.maze.step) - this.bullets[i].positionX <= BulletInfo.speed) {
+        this.bullets[i].bounceX();
+      } else if (room.minusX && this.bullets[i].positionX - (roomX * this.maze.step) <= BulletInfo.speed) {
+        this.bullets[i].bounceX();
+      }
+      if (room.plusY && ((roomY + 1) * this.maze.step) - this.bullets[i].positionY <= BulletInfo.speed) {
+        this.bullets[i].bounceY();
+      } else if (room.minusY && this.bullets[i].positionY - (roomY * this.maze.step) <= BulletInfo.speed) {
+        this.bullets[i].bounceY();
+      }
+
+      // Move the bullet
+      this.bullets[i].move();
+
+      // Is the bullet colliding with our tank
+      if (this.bullets[i].isActive() && Math.sqrt(Math.pow(this.bullets[i].positionY - this.tankSelection.positionY, 2) + Math.pow(this.bullets[i].positionX - this.tankSelection.positionX, 2)) < this.tankReference.length && this.intersects(new Point(this.bullets[i].positionX, this.bullets[i].positionY), this.maze.step, rotatedEdges)) {
+        //Send bulletId to server
+        const message: WssOutMessage = {
+          messageType: WssOutMessageTypes.EraseBullet,
+          data: JSON.stringify(this.bullets[i].id)
+        }
+        this.socket.send(JSON.stringify(message));
+
+        this.stateService.dispatch("health", (initialState: number): number => {
+          return initialState - 1;
+        });
+        if (this.health == 0) {
+          this.tankSelection.alive = false;
+        }
+
+        this.bullets.splice(i, 1);
+        i -= 1;
+        continue;
+      }
+    }
+
     //Send our selected tank to the server
     const message: WssOutMessage = {
       messageType: WssOutMessageTypes.TankUpdate,
@@ -500,57 +578,72 @@ export class GameService {
     this.canvasService.clearMazeField();
     this.canvasService.drawMaze();
     this.canvasService.drawTanks(this.tankSelection, this.serverTanks);
-    window.requestAnimationFrame(this.animationFrame.bind(this));
+    this.canvasService.drawBullets(this.bullets);
+    this.animationRequest = window.requestAnimationFrame(this.animationFrame.bind(this));
   }
 
-  mouseMoveHandler(event: MouseEvent) {
+  mouseMoveHandler = (event: MouseEvent) => {
     this.mousePositionX = event.clientX;
     this.mousePositionY = event.clientY;
   }
 
-  mouseClickHandler(event: MouseEvent) {
-    if (this.bulletsAvailable > 0) {
+  mouseClickHandler = (event: MouseEvent) => {
+    if (this.state === GameState.Running && this.bulletsAvailable > 0) {
       this.bulletsAvailable -= 1;
-      window.setTimeout(() => {
+      console.log(this.bulletsAvailable);
+      this.timeouts.push(window.setTimeout(() => {
         this.bulletsAvailable += 1;
-      }, 5000);
-      console.log("Fire bullet! ", this.bulletsAvailable);
+      }, 4000));
+
+      const positionX: number = this.tankSelection.positionX + this.tankReference.turretLength * Math.cos(this.tankSelection.turretHeading * Math.PI / -180.0);
+      const positionY: number = this.tankSelection.positionY + this.tankReference.turretLength * Math.sin(this.tankSelection.turretHeading * Math.PI / -180.0);
+      const demolition: boolean = (this.tankSelection.type === TankType.Demolition && this.tankSelection.ultimateActive);
+      // Send new Bullet request
+      const message: WssOutMessage = {
+        messageType: WssOutMessageTypes.NewBullet,
+        data: JSON.stringify(new ServerBullet(uuidv4(), positionX, positionY, this.tankSelection.turretHeading, demolition))
+      }
+      this.socket.send(JSON.stringify(message));
     }
   }
 
-  keyDownHandler(event: KeyboardEvent) {
-    if (event.code === "KeyW") {
-      this.moveState = MoveState.Forward;
-    } else if (event.code === "KeyS") {
-      this.moveState = MoveState.Backward;
-    } else if (event.code === "KeyD") {
-      this.turnState = TurnState.Right;
-    } else if (event.code === "KeyA") {
-      this.turnState = TurnState.Left;
-    } else if (event.code === "Space") {
-      if (this.ultimateAvailable) {
-        this.ultimateAvailable = false;
-        this.tankSelection.ultimateActive = true;
-        window.setTimeout(() => {
-          this.tankSelection.ultimateActive = false;
-        }, 2000);
+  keyDownHandler = (event: KeyboardEvent) => {
+    if (this.state === GameState.Running) {
+      if (event.code === "KeyW") {
+        this.moveState = MoveState.Forward;
+      } else if (event.code === "KeyS") {
+        this.moveState = MoveState.Backward;
+      } else if (event.code === "KeyD") {
+        this.turnState = TurnState.Right;
+      } else if (event.code === "KeyA") {
+        this.turnState = TurnState.Left;
+      } else if (event.code === "Space") {
+        if (this.ultimateAvailable) {
+          this.ultimateAvailable = false;
+          this.tankSelection.ultimateActive = true;
+          this.timeouts.push(window.setTimeout(() => {
+            this.tankSelection.ultimateActive = false;
+          }, 2000));
+        }
       }
     }
   }
 
-  keyUpHandler(event: KeyboardEvent) {
-    if (event.code === "KeyW" && this.moveState === MoveState.Forward) {
-      this.moveState = MoveState.None;
-    } else if (event.code === "KeyS" && this.moveState === MoveState.Backward) {
-      this.moveState = MoveState.None;
-    } else if (event.code === "KeyD" && this.turnState === TurnState.Right) {
-      this.turnState = TurnState.None;
-    } else if (event.code === "KeyA" && this.turnState === TurnState.Left) {
-      this.turnState = TurnState.None;
+  keyUpHandler = (event: KeyboardEvent) => {
+    if (this.state === GameState.Running) {
+      if (event.code === "KeyW" && this.moveState === MoveState.Forward) {
+        this.moveState = MoveState.None;
+      } else if (event.code === "KeyS" && this.moveState === MoveState.Backward) {
+        this.moveState = MoveState.None;
+      } else if (event.code === "KeyD" && this.turnState === TurnState.Right) {
+        this.turnState = TurnState.None;
+      } else if (event.code === "KeyA" && this.turnState === TurnState.Left) {
+        this.turnState = TurnState.None;
+      }
     }
   }
 
-  calculateCollisions(): void {
+  calculateCollisions(): Array<Line> {
     this.stopMovement.MinusX = false;
     this.stopMovement.PlusX = false;
     this.stopMovement.MinusY = false;
@@ -703,6 +796,7 @@ export class GameService {
         }
       }
     }
+    return rotatedEdges;
   }
 
   intersects(point: Point, lineLength: number, edges: Array<Line>): boolean {

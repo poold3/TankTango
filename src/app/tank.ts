@@ -39,6 +39,7 @@ export interface TankInfo {
   fireRate: number;
   width: number;
   length: number;
+  turretLength: number;
   center: Point;
   vertices: Array<Point>;
   edges: Array<Line>;
@@ -52,6 +53,7 @@ export const TankTank: TankInfo = {
   fireRate: 2,
   width: 39,
   length: 55,
+  turretLength: 28,
   center: new Point(20, 28),
   vertices: new Array<Point>(),
   edges: new Array<Line>()
@@ -81,6 +83,7 @@ export const AssaultTank: TankInfo = {
   fireRate: 4,
   width: 35,
   length: 49,
+  turretLength: 25,
   center: new Point(18, 25),
   vertices: new Array<Point>(),
   edges: new Array<Line>()
@@ -110,6 +113,7 @@ export const ScoutTank: TankInfo = {
   fireRate: 2,
   width: 31,
   length: 45,
+  turretLength: 23,
   center: new Point(16, 23),
   vertices: new Array<Point>(),
   edges: new Array<Line>()
@@ -139,6 +143,7 @@ export const DemolitionTank: TankInfo = {
   fireRate: 2,
   width: 35,
   length: 49,
+  turretLength: 25,
   center: new Point(18, 25),
   vertices: new Array<Point>(),
   edges: new Array<Line>()

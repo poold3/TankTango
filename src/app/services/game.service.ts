@@ -34,8 +34,6 @@ export class GameService {
   moveState: MoveState = MoveState.None;
   turnState: TurnState = TurnState.None;
   ultimateAvailable: boolean = false;
-  turnSpeed: number = 0;
-  moveSpeed: number = 0;
   previousTime: number = 0;
   mazeStartX: number = 0;
   mazeStartY: number = 0;
@@ -417,32 +415,18 @@ export class GameService {
     this.ultimateAvailable = true;
     this.moveState = MoveState.None;
     this.turnState = TurnState.None;
-    this.stopMovement.MinusX = false;
-    this.stopMovement.MinusY = false;
-    this.stopMovement.PlusX = false;
-    this.stopMovement.PlusY = false;
     this.bullets.length = 0;
+
     if (this.tankSelection.type === TankType.Tank) {
-      this.bulletsAvailable = TankTank.fireRate;
-      this.turnSpeed = TankTank.turnSpeed;
-      this.moveSpeed = TankTank.speed;
       this.tankReference = TankTank;
     } else if (this.tankSelection.type === TankType.Assault) {
-      this.bulletsAvailable = AssaultTank.fireRate;
-      this.turnSpeed = AssaultTank.turnSpeed;
-      this.moveSpeed = AssaultTank.speed;
       this.tankReference = AssaultTank;
     } else if (this.tankSelection.type === TankType.Scout) {
-      this.bulletsAvailable = ScoutTank.fireRate;
-      this.turnSpeed = ScoutTank.turnSpeed;
-      this.moveSpeed = ScoutTank.speed;
       this.tankReference = ScoutTank;
     } else if (this.tankSelection.type === TankType.Demolition) {
-      this.bulletsAvailable = DemolitionTank.fireRate;
-      this.turnSpeed = DemolitionTank.turnSpeed;
-      this.moveSpeed = DemolitionTank.speed;
       this.tankReference = DemolitionTank;
     }
+    this.bulletsAvailable = this.tankReference.fireRate;
     this.stateService.dispatch("health", (initialState: number): number => {
       return this.tankReference.health;
     });
@@ -467,7 +451,7 @@ export class GameService {
 
     // Move Tank
     if (this.moveState !== MoveState.None) {
-      const speed = this.moveSpeed * elapsed * 0.06;
+      const speed = this.tankReference.speed * elapsed * 0.06;
       let horizontal = speed * Math.cos(this.tankSelection.heading * (Math.PI / 180.0));
       let vertical = speed * Math.sin(this.tankSelection.heading * (Math.PI / 180.0));
       
@@ -492,26 +476,26 @@ export class GameService {
     // Turn Tank
     if (this.turnState !== TurnState.None) {
       if (this.turnState === TurnState.Right) {
-        this.tankSelection.heading -= this.turnSpeed;
+        this.tankSelection.heading -= this.tankReference.turnSpeed;
         if (this.tankSelection.heading < 0.0) {
           this.tankSelection.heading += 360.0;
         }
       } else if (this.turnState === TurnState.Left) {
-        this.tankSelection.heading += this.turnSpeed;
+        this.tankSelection.heading += this.tankReference.turnSpeed;
         if (this.tankSelection.heading >= 360.0) {
           this.tankSelection.heading -= 360.0;
         }
       }
 
       if (this.stopMovement.MinusX) {
-        this.tankSelection.positionX += 0.5;
+        this.tankSelection.positionX += this.tankReference.speed;
       } else if (this.stopMovement.PlusX) {
-        this.tankSelection.positionX -= 0.5;
+        this.tankSelection.positionX -= this.tankReference.speed;
       }
       if (this.stopMovement.MinusY) {
-        this.tankSelection.positionY += 0.5;
+        this.tankSelection.positionY += this.tankReference.speed;
       } else if (this.stopMovement.PlusY) {
-        this.tankSelection.positionY -= 0.5;
+        this.tankSelection.positionY -= this.tankReference.speed;
       }
     }
 
@@ -557,13 +541,9 @@ export class GameService {
         this.stateService.dispatch("health", (initialState: number): number => {
           return initialState - 1;
         });
-        if (this.health == 0) {
+        if (this.health === 0) {
           this.tankSelection.alive = false;
         }
-
-        this.bullets.splice(i, 1);
-        i -= 1;
-        continue;
       }
     }
 

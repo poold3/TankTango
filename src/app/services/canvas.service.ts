@@ -171,6 +171,9 @@ export class CanvasService {
       let isSelectedTank: boolean = false;
       if (tank.gamerName !== tankSelection.gamerName) {
         tankToDraw = tank;
+        if (tankToDraw.type === TankType.Scout && tankToDraw.ultimateActive) {
+          return;
+        }
       } else {
         tankToDraw = tankSelection;
         isSelectedTank = true;

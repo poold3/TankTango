@@ -46,6 +46,8 @@ export class GameService {
   tankReference: TankInfo = TankTank;
   animationRequest: number = 0;
   timeouts: Array<number> = new Array<number>();
+  xCorrection: number = 0;
+  yCorrection: number = 0;
 
   constructor(private readonly stateService: StateService, private readonly http: HttpClient, private readonly canvasService: CanvasService) {
     this.stateService.addSlice("gamerName", this.gamerName);
@@ -368,13 +370,12 @@ export class GameService {
   }
 
   showWaitingRoom() {
-    this.canvasService.setBackground("assets/menu_background.jpg");
-
     window.cancelAnimationFrame(this.animationRequest);
     this.timeouts.forEach((timeout: number) => {
       window.clearTimeout(timeout);
     });
     this.timeouts.length = 0;
+    this.canvasService.setBackground("assets/menu_background.jpg");
 
     this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
       return false;
@@ -487,15 +488,16 @@ export class GameService {
         }
       }
 
-      if (this.stopMovement.MinusX) {
-        this.tankSelection.positionX += this.tankReference.speed;
-      } else if (this.stopMovement.PlusX) {
-        this.tankSelection.positionX -= this.tankReference.speed;
+      if (this.stopMovement.PlusX) {
+        this.tankSelection.positionX -= 0.5;
+      } else if (this.stopMovement.MinusX) {
+        this.tankSelection.positionX += 0.5;
       }
-      if (this.stopMovement.MinusY) {
-        this.tankSelection.positionY += this.tankReference.speed;
-      } else if (this.stopMovement.PlusY) {
-        this.tankSelection.positionY -= this.tankReference.speed;
+
+      if (this.stopMovement.PlusY) {
+        this.tankSelection.positionY -= 0.5;
+      } else if (this.stopMovement.MinusY) {
+        this.tankSelection.positionY += 0.5;
       }
     }
 
@@ -515,15 +517,75 @@ export class GameService {
       const roomX = Math.floor(this.bullets[i].positionX / this.maze.step);
       const roomY = Math.floor(this.bullets[i].positionY / this.maze.step);
       const room: Room = this.maze.rooms[roomY][roomX];
-      if (room.plusX && ((roomX + 1) * this.maze.step) - this.bullets[i].positionX <= BulletInfo.speed) {
+
+      let foundBounce = false;
+      let wallErased = false;
+      if (room.plusX && ((roomX + 1) * this.maze.step) - this.bullets[i].positionX <= BulletInfo.speed && this.bullets[i].incrementX > 0.0) {
         this.bullets[i].bounceX();
-      } else if (room.minusX && this.bullets[i].positionX - (roomX * this.maze.step) <= BulletInfo.speed) {
+        foundBounce = true;
+        if (this.bullets[i].demolition && roomX < this.maze.numRoomsWide - 1) {
+          this.maze.rooms[roomY][roomX].plusX = false;
+          wallErased = true;
+          if (roomX + 1 < this.maze.numRoomsWide) {
+            this.maze.rooms[roomY][roomX + 1].minusX = false;
+          }
+        }
+      } else if (room.minusX && this.bullets[i].positionX - (roomX * this.maze.step) <= BulletInfo.speed && this.bullets[i].incrementX < 0.0) {
         this.bullets[i].bounceX();
+        foundBounce = true;
+        if (this.bullets[i].demolition && roomX > 0) {
+          this.maze.rooms[roomY][roomX].minusX = false;
+          wallErased = true;
+          if (roomX - 1 >= 0) {
+            this.maze.rooms[roomY][roomX - 1].plusX = false;
+          }
+        }
       }
-      if (room.plusY && ((roomY + 1) * this.maze.step) - this.bullets[i].positionY <= BulletInfo.speed) {
+      if (room.plusY && ((roomY + 1) * this.maze.step) - this.bullets[i].positionY <= BulletInfo.speed && this.bullets[i].incrementY > 0.0) {
         this.bullets[i].bounceY();
-      } else if (room.minusY && this.bullets[i].positionY - (roomY * this.maze.step) <= BulletInfo.speed) {
+        foundBounce = true;
+        if (this.bullets[i].demolition && roomY < this.maze.numRoomsHigh - 1) {
+          this.maze.rooms[roomY][roomX].plusY = false;
+          wallErased = true;
+          if (roomY + 1 < this.maze.numRoomsHigh) {
+            this.maze.rooms[roomY + 1][roomX].minusY = false;
+          }
+        }
+      } else if (room.minusY && this.bullets[i].positionY - (roomY * this.maze.step) <= BulletInfo.speed && this.bullets[i].incrementY < 0.0) {
         this.bullets[i].bounceY();
+        foundBounce = true;
+        if (this.bullets[i].demolition && roomY > 0) {
+          this.maze.rooms[roomY][roomX].minusY = false;
+          wallErased = true;
+          if (roomY - 1 >= 0) {
+            this.maze.rooms[roomY - 1][roomX].plusY = false;
+          }
+        }
+      }
+
+      if (wallErased) {
+        const message: WssOutMessage = {
+          messageType: WssOutMessageTypes.EraseBullet,
+          data: JSON.stringify(this.bullets[i].id)
+        }
+        this.socket.send(JSON.stringify(message));
+      }
+
+      //Calculate filled corners
+      if (!foundBounce) {
+        if (((roomX + 1) * this.maze.step) - this.bullets[i].positionX <= BulletInfo.speed && ((roomY + 1) * this.maze.step) - this.bullets[i].positionY <= BulletInfo.speed && !room.plusX && !room.plusY && roomX + 1 < this.maze.numRoomsWide && roomY + 1 < this.maze.numRoomsHigh && this.maze.rooms[roomY + 1][roomX + 1].minusX && this.maze.rooms[roomY + 1][roomX + 1].minusY) {
+          this.bullets[i].bounceX();
+          this.bullets[i].bounceY();
+        } else if (((roomX + 1) * this.maze.step) - this.bullets[i].positionX <= BulletInfo.speed && this.bullets[i].positionY - (roomY * this.maze.step) <= BulletInfo.speed && !room.plusX && !room.minusY && roomX + 1 < this.maze.numRoomsWide && roomY - 1 >= 0 && this.maze.rooms[roomY - 1][roomX + 1].minusX && this.maze.rooms[roomY - 1][roomX + 1].plusY) {
+          this.bullets[i].bounceX();
+          this.bullets[i].bounceY();
+        } else if (this.bullets[i].positionX - (roomX * this.maze.step) <= BulletInfo.speed && ((roomY + 1) * this.maze.step) - this.bullets[i].positionY <= BulletInfo.speed && !room.minusX && !room.plusY && roomX - 1 >= 0 && roomY + 1 < this.maze.numRoomsHigh && this.maze.rooms[roomY + 1][roomX - 1].plusX && this.maze.rooms[roomY + 1][roomX - 1].minusY) {
+          this.bullets[i].bounceX();
+          this.bullets[i].bounceY();
+        } else if (this.bullets[i].positionX - (roomX * this.maze.step) <= BulletInfo.speed && this.bullets[i].positionY - (roomY * this.maze.step) <= BulletInfo.speed && !room.minusX && !room.minusY && roomX - 1 >= 0 && roomY - 1 >= 0 && this.maze.rooms[roomY - 1][roomX - 1].plusX && this.maze.rooms[roomY - 1][roomX - 1].plusY) {
+          this.bullets[i].bounceX();
+          this.bullets[i].bounceY();
+        }
       }
 
       // Move the bullet
@@ -538,11 +600,13 @@ export class GameService {
         }
         this.socket.send(JSON.stringify(message));
 
-        this.stateService.dispatch("health", (initialState: number): number => {
-          return initialState - 1;
-        });
-        if (this.health === 0) {
-          this.tankSelection.alive = false;
+        if (this.tankSelection.type !== TankType.Tank || !this.tankSelection.ultimateActive) {
+          this.stateService.dispatch("health", (initialState: number): number => {
+            return initialState - 1;
+          });
+          if (this.health === 0) {
+            this.tankSelection.alive = false;
+          }
         }
       }
     }
@@ -568,16 +632,33 @@ export class GameService {
   }
 
   mouseClickHandler = (event: MouseEvent) => {
-    if (this.state === GameState.Running && this.bulletsAvailable > 0) {
+    if (this.state === GameState.Running && (this.bulletsAvailable > 0 || (this.tankSelection.type == TankType.Assault && this.tankSelection.ultimateActive))) {
       this.bulletsAvailable -= 1;
-      console.log(this.bulletsAvailable);
       this.timeouts.push(window.setTimeout(() => {
         this.bulletsAvailable += 1;
       }, 4000));
 
-      const positionX: number = this.tankSelection.positionX + this.tankReference.turretLength * Math.cos(this.tankSelection.turretHeading * Math.PI / -180.0);
-      const positionY: number = this.tankSelection.positionY + this.tankReference.turretLength * Math.sin(this.tankSelection.turretHeading * Math.PI / -180.0);
+      let positionX: number = this.tankSelection.positionX + (this.tankReference.turretLength * 0.75) * Math.cos(this.tankSelection.turretHeading * Math.PI / -180.0);
+      let positionY: number = this.tankSelection.positionY + (this.tankReference.turretLength * 0.75) * Math.sin(this.tankSelection.turretHeading * Math.PI / -180.0);
       const demolition: boolean = (this.tankSelection.type === TankType.Demolition && this.tankSelection.ultimateActive);
+      
+      //Check to make sure bullet is not going across wall
+      const bulletRoomX = Math.floor(positionX / this.maze.step);
+      const bulletRoomY = Math.floor(positionY / this.maze.step);
+      const tankRoomX = Math.floor(this.tankSelection.positionX / this.maze.step);
+      const tankRoomY = Math.floor(this.tankSelection.positionY / this.maze.step);
+      if (bulletRoomX !== tankRoomX) {
+        if (bulletRoomX < 0 || bulletRoomX >= this.maze.numRoomsWide || (bulletRoomX > tankRoomX && this.maze.rooms[tankRoomY][tankRoomX].plusX) || (bulletRoomX < tankRoomX && this.maze.rooms[tankRoomY][tankRoomX].minusX)) {
+          positionX = this.tankSelection.positionX;
+          positionY = this.tankSelection.positionY;
+        }
+      } else if (bulletRoomY !== tankRoomY) {
+        if (bulletRoomY < 0 || bulletRoomY >= this.maze.numRoomsHigh || (bulletRoomY > tankRoomY && this.maze.rooms[tankRoomY][tankRoomX].plusY) || (bulletRoomY < tankRoomY && this.maze.rooms[tankRoomY][tankRoomX].minusY)) {
+          positionX = this.tankSelection.positionX;
+          positionY = this.tankSelection.positionY;
+        }
+      }
+      
       // Send new Bullet request
       const message: WssOutMessage = {
         messageType: WssOutMessageTypes.NewBullet,
@@ -736,7 +817,7 @@ export class GameService {
       }
     }
 
-    const WALL_SPACE = 2;
+    const WALL_SPACE = 3;
     // Compute stops
     for (let i = 0; i < rotatedPoints.length; ++i) {
       if (minusY && !this.stopMovement.PlusX && !this.stopMovement.MinusX) {

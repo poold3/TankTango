@@ -27,7 +27,6 @@ export class WaitingroomComponent implements OnDestroy, OnInit {
         this.tankSelection = tankSelection;
       }),
       this.stateService.select<Array<ServerTank>>("serverTanks").subscribe((serverTanks: Array<ServerTank>): void => {
-        console.log(serverTanks);
         this.serverTanks = serverTanks;
       }),
       this.stateService.select<string>("gameCode").subscribe((gameCode: string): void => {

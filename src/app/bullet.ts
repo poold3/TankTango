@@ -32,7 +32,6 @@ export class Bullet {
   move(): void {
     if (!this.isActive()) {
       this.active -= 1;
-      return;
     }
     this.positionX += this.incrementX;
     this.positionY += this.incrementY;
@@ -73,6 +72,6 @@ export interface BulletInfoInterface {
 export const BulletInfo: BulletInfoInterface = {
   speed: 4,
   radius: 2,
-  inactivePeriod: 2,
-  timeAlive: 5000
+  inactivePeriod: 3,
+  timeAlive: 10000
 }

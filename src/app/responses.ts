@@ -26,6 +26,7 @@ export enum WssInMessageTypes {
   GameStateUpdate,
   NewBullet,
   EraseBullet,
+  PlayAudio,
   Error
 }
 

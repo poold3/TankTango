@@ -2,6 +2,7 @@ import { Component, AfterViewInit, ViewChild, ElementRef, OnDestroy, OnInit } fr
 import { CanvasService } from './services/canvas.service';
 import { StateService } from './services/state.service';
 import { Subscription } from 'rxjs';
+import { AudioService } from './services/audio.service';
 
 @Component({
   selector: 'app-root',
@@ -18,7 +19,7 @@ export class AppComponent implements AfterViewInit, OnInit, OnDestroy {
   isLoading: boolean = true;
   subscriptions: Subscription[] = new Array<Subscription>();
 
-  constructor(private readonly stateService: StateService, private readonly canvasService: CanvasService) {
+  constructor(private readonly stateService: StateService, private readonly canvasService: CanvasService, private readonly audioService: AudioService) {
     this.stateService.addSlice("showMenu", this.showMenu);
     this.stateService.addSlice("showWaitingRoom", this.showWaitingRoom);
     this.stateService.addSlice("showGameRoom", this.showGameRoom);
@@ -40,6 +41,12 @@ export class AppComponent implements AfterViewInit, OnInit, OnDestroy {
         this.isLoading = isLoading;
       })
     );
+    this.audioService.addAudio("click", "assets/audio/click.mp3", false, 0.2);
+    this.audioService.addAudio("boom", "assets/audio/boom-trimmed.mp3"), 0.2;
+    this.audioService.addAudio("synth", "assets/audio/synth-chord.mp3", true, 0.2);
+    this.audioService.addAudio("hit", "assets/audio/hit.mp3", false, 0.2);
+    this.audioService.addAudio("ultimate", "assets/audio/ultimate.mp3", false, 0.2);
+    this.audioService.addAudio("engine", "assets/audio/engine.mp3", false, 0.5);
   }
 
   ngAfterViewInit(): void {

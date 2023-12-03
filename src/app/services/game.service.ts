@@ -677,7 +677,7 @@ export class GameService {
   }
 
   mouseClickHandler = (event: MouseEvent) => {
-    if (this.state === GameState.Running && (this.bulletsAvailable > 0 || (this.tankSelection.type == TankType.Assault && this.tankSelection.ultimateActive))) {
+    if (this.tankSelection.alive && this.state === GameState.Running && (this.bulletsAvailable > 0 || (this.tankSelection.type == TankType.Assault && this.tankSelection.ultimateActive))) {
       this.bulletsAvailable -= 1;
       this.timeouts.push(window.setTimeout(() => {
         this.bulletsAvailable += 1;
@@ -714,7 +714,7 @@ export class GameService {
   }
 
   keyDownHandler = (event: KeyboardEvent) => {
-    if (this.state === GameState.Running) {
+    if (this.tankSelection.alive && this.state === GameState.Running) {
       if (event.code === "KeyW") {
         this.moveState = MoveState.Forward;
       } else if (event.code === "KeyS") {

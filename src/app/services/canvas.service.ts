@@ -20,6 +20,7 @@ export class CanvasService {
   mazeRooms: Array<Array<Room>> = new Array<Array<Room>>();
   images!: TankImages;
   downArrowImage!: HTMLImageElement;
+  gamerNameLengths = new Map<string, number>();
 
   constructor() {
     this.backgroundImage = new Image();
@@ -105,7 +106,7 @@ export class CanvasService {
     this.ctx.drawImage(this.backgroundImage, 0, 0, this.canvasElement.width, this.canvasElement.height);
   }
 
-  loadMazeInfo(maze: Maze) {
+  loadMazeInfo(maze: Maze, serverTanks: Array<ServerTank>) {
     this.mazeStartX = (this.canvasElement.width - maze.width) / 2;
     this.mazeStartY = 50;
     this.mazeWidth = maze.width;
@@ -114,6 +115,10 @@ export class CanvasService {
     this.mazeNumRoomsWide = maze.numRoomsWide;
     this.mazeNumRoomsHigh = maze.numRoomsHigh;
     this.mazeRooms = maze.rooms;
+    this.ctx.font = "20px";
+    serverTanks.forEach((tank: ServerTank) => {
+      this.gamerNameLengths.set(tank.gamerName, this.ctx.measureText(tank.gamerName).width);
+    });
   }
 
   getMazeStartX() {
@@ -185,9 +190,16 @@ export class CanvasService {
 
       const tankWidth = this.getTankWidthByType(tankToDraw.type);
       const tankLength = this.getTankLengthByType(tankToDraw.type);
-
-      if (isSelectedTank && tankToDraw.positionY - 50 > -10.0) {
-        this.ctx.drawImage(this.downArrowImage, (tankToDraw.positionX + this.mazeStartX) - 12, (tankToDraw.positionY + this.mazeStartY) - 50);
+      this.ctx.fillStyle = "black";
+      if (tankToDraw.positionY - 50 > -10.0) {
+        if (isSelectedTank) {
+          this.ctx.drawImage(this.downArrowImage, (tankToDraw.positionX + this.mazeStartX) - 12, (tankToDraw.positionY + this.mazeStartY) - 50);
+        } else {
+          let nameLength = this.gamerNameLengths.get(tankToDraw.gamerName);
+          if (nameLength) {
+            this.ctx.fillText(tankToDraw.gamerName, (tankToDraw.positionX + this.mazeStartX) - (nameLength / 2.0), (tankToDraw.positionY + this.mazeStartY) - 30);
+          }
+        }
       }
       
       this.ctx.translate((tankToDraw.positionX + this.mazeStartX), (tankToDraw.positionY + this.mazeStartY));

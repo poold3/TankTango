@@ -1,0 +1,70 @@
+<div id="tankSelection">
+  <div id="tankTank" class="tank" (click)="setTankSelection(1)" [ngClass]="{'selected': tankSelection.type == 1}">
+    <p class="tankTitle">Tank Tank</p>
+    <div id="tankTankImage"></div>
+    <div class="stats">
+      <div class="statsTitle">Health</div>
+      <div class="statsImage" style="background-image: url('/assets/stats/4Stats.png');"></div>
+    </div>
+    <div class="stats">
+      <div class="statsTitle">Speed</div>
+      <div class="statsImage" style="background-image: url('/assets/stats/2Stats.png');"></div>
+    </div>
+    <div class="stats">
+      <div class="statsTitle">Fire Rate</div>
+      <div class="statsImage" style="background-image: url('/assets/stats/3Stats.png');"></div>
+    </div>
+    <div class="specialAbility">Becomes Immune To Damage For 2 Seconds</div>
+  </div>
+  <div id="assaultTank" class="tank" (click)="setTankSelection(2)" [ngClass]="{'selected': tankSelection.type == 2}">
+    <p class="tankTitle">Assault Tank</p>
+    <div id="assaultTankImage"></div>
+    <div class="stats">
+      <div class="statsTitle">Health</div>
+      <div class="statsImage" style="background-image: url('/assets/stats/3Stats.png');"></div>
+    </div>
+    <div class="stats">
+      <div class="statsTitle">Speed</div>
+      <div class="statsImage" style="background-image: url('/assets/stats/2Stats.png');"></div>
+    </div>
+    <div class="stats">
+      <div class="statsTitle">Fire Rate</div>
+      <div class="statsImage" style="background-image: url('/assets/stats/4Stats.png');"></div>
+    </div>
+    <div class="specialAbility">Gain Infinite Fire Rate For 2 Seconds</div>
+  </div>
+  <div id="scoutTank" class="tank" (click)="setTankSelection(3)" [ngClass]="{'selected': tankSelection.type == 3}">
+    <p class="tankTitle">Scout Tank</p>
+    <div id="scoutTankImage"></div>
+    <div class="stats">
+      <div class="statsTitle">Health</div>
+      <div class="statsImage" style="background-image: url('/assets/stats/2Stats.png');"></div>
+    </div>
+    <div class="stats">
+      <div class="statsTitle">Speed</div>
+      <div class="statsImage" style="background-image: url('/assets/stats/4Stats.png');"></div>
+    </div>
+    <div class="stats">
+      <div class="statsTitle">Fire Rate</div>
+      <div class="statsImage" style="background-image: url('/assets/stats/3Stats.png');"></div>
+    </div>
+    <div class="specialAbility">Turn Invisible For 2 Seconds</div>
+  </div>
+  <div id="DemolitionTank" class="tank" (click)="setTankSelection(4)" [ngClass]="{'selected': tankSelection.type == 4}">
+    <p class="tankTitle">Demolition Tank</p>
+    <div id="demolitionTankImage"></div>
+    <div class="stats">
+      <div class="statsTitle">Health</div>
+      <div class="statsImage" style="background-image: url('/assets/stats/3Stats.png');"></div>
+    </div>
+    <div class="stats">
+      <div class="statsTitle">Speed</div>
+      <div class="statsImage" style="background-image: url('/assets/stats/3Stats.png');"></div>
+    </div>
+    <div class="stats">
+      <div class="statsTitle">Fire Rate</div>
+      <div class="statsImage" style="background-image: url('/assets/stats/3Stats.png');"></div>
+    </div>
+    <div class="specialAbility">Shoot Down Walls For 2 Seconds</div>
+  </div>
+</div>

@@ -35,12 +35,11 @@
 #instructionsComponent {
   position: fixed;
   z-index: 3;
-  padding-top: 100px;
+  padding-top: 10vh;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
-  overflow: auto;
   background-color: rgb(0,0,0);
   background-color: rgba(0,0,0,0.6);
 }
@@ -52,6 +51,8 @@
   padding: 20px;
   border: 1px solid #888;
   width: 80%;
+  height: 75vh;
+  overflow: auto;
   border-radius: 5px;
 }
 
@@ -72,43 +73,6 @@
   padding: 5px;
 }
 
-#tankSelection {
-  width: 100%;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: space-evenly;
-  align-items: flex-start;
-}
-
-.tank {
-  width: 200px;
-  height: 290px;
-  margin: 10px;
-  border: solid 1px white;
-  border-radius: 5px;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  justify-content: flex-start;
-  align-items: center;
-  cursor: pointer;
-  background-color: rgb(0,0,0);
-  background-color: rgb(0,0,0,0.6);
-}
-
-.tank:hover {
-  transform: translateY(-5px);
-}
-
-.tankTitle {
-  font-size: 20px;
-}
-
-.selected {
-  box-shadow: 0px 0px 20px 5px white;
-}
-
 .gameModeButton {
   width: 200px;
   padding: 5px;
@@ -117,63 +81,4 @@
 
 .gameModeButton:hover {
   transform: scale(1.05);
-}
-
-#tankTankImage {
-  width: 55px;
-  height: 39px;
-  background-size: cover;
-  background-image: url("/assets/tanks/tankturret.png"), url("/assets/tanks/tankbody.png");
-}
-
-#assaultTankImage {
-  width: 49px;
-  height: 35px;
-  background-size: cover;
-  background-image: url("/assets/tanks/assaultturret.png"), url("/assets/tanks/assaultbody.png");
-}
-
-#scoutTankImage {
-  width: 45px;
-  height: 31px;
-  background-size: cover;
-  background-image: url("/assets/tanks/scoutturret.png"), url("/assets/tanks/scoutbody.png");
-}
-
-#demolitionTankImage {
-  width: 49px;
-  height: 35px;
-  background-size: cover;
-  background-image: url("/assets/tanks/demolitionturret.png"), url("/assets/tanks/demolitionbody.png");
-}
-
-.stats {
-  width: 100%;
-  height: 30px;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  justify-content: flex-start;
-  align-items: center;
-  margin-top: 5px;
-}
-
-.statsTitle {
-  text-align: center;
-  padding-top: 10px;
-  width: 90px;
-  height: 30px;
-  color: white;
-}
-
-.statsImage {
-  width: 100px;
-  height: 30px;
-}
-
-.specialAbility {
-  text-align: center;
-  margin-top: 10px;
-  padding-left: 10px;
-  padding-right: 10px;
 }

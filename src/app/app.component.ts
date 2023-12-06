@@ -47,6 +47,7 @@ export class AppComponent implements AfterViewInit, OnInit, OnDestroy {
     this.audioService.addAudio("hit", "assets/audio/hit.mp3", false, 0.2);
     this.audioService.addAudio("ultimate", "assets/audio/ultimate.mp3", false, 0.2);
     this.audioService.addAudio("engine", "assets/audio/engine.mp3", false, 0.5);
+    this.audioService.addAudio("start", "assets/audio/start.mp3", false, 0.1);
   }
 
   ngAfterViewInit(): void {

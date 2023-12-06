@@ -45,10 +45,6 @@ export class WaitingroomComponent implements OnDestroy, OnInit {
     this.clipboardService.copyFromContent(this.gameCode);
   }
 
-  setTankSelection(tankType: TankType) {
-    this.gameService.switchTanks(tankType);
-  }
-
   leaveGame() {
     this.gameService.leaveGame();
   }

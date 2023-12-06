@@ -15,8 +15,7 @@ export class MenuComponent implements OnInit, AfterViewInit, OnDestroy {
   subscriptions: Subscription[] = new Array<Subscription>();
   @ViewChild("gamerNameInput") gamerNameInput!: ElementRef;
   gamerNameInputElement!: HTMLInputElement;
-  gamerName!: string;
-  tankSelection!: TankType;
+  tankSelection!: ServerTank;
 
 
   constructor(private readonly stateService: StateService, private readonly http: HttpClient, private readonly gameService: GameService) {
@@ -29,11 +28,8 @@ export class MenuComponent implements OnInit, AfterViewInit, OnDestroy {
       this.stateService.select<boolean>("showInstructions").subscribe((showInstructions: boolean): void => {
         this.showInstructions = showInstructions;
       }),
-      this.stateService.select<string>("gamerName").subscribe((gamerName: string): void => {
-        this.gamerName = gamerName;
-      }),
       this.stateService.select<ServerTank>("tankSelection").subscribe((tankSelection: ServerTank): void => {
-        this.tankSelection = tankSelection.type;
+        this.tankSelection = tankSelection;
       })
     );
   }
@@ -49,9 +45,6 @@ export class MenuComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   updateGamerName() {
-    this.stateService.dispatch("gamerName", (gamerName: string): string => {
-      return this.gamerNameInputElement.value;
-    });
     this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
       return {
         ...initialState,
@@ -60,43 +53,11 @@ export class MenuComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  setTankSelection(tank: number): void {
-    if (tank == TankType.Tank) {
-      this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
-        return {
-          ...initialState,
-          type: TankType.Tank
-        };
-      });
-    } else if (tank == TankType.Assault) {
-      this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
-        return {
-          ...initialState,
-          type: TankType.Assault
-        };
-      });
-    } else if (tank == TankType.Scout) {
-      this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
-        return {
-          ...initialState,
-          type: TankType.Scout
-        };
-      });
-    } else if (tank == TankType.Demolition) {
-      this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
-        return {
-          ...initialState,
-          type: TankType.Demolition
-        };
-      });
-    }
-  }
-
   verifyReadyToPlay(): boolean {
-    if (this.gamerName.trim().length === 0) {
+    if (this.tankSelection.gamerName.trim().length === 0) {
       return false;
     }
-    if (this.tankSelection === TankType.None) {
+    if (this.tankSelection.type === TankType.None) {
       return false;
     }
 

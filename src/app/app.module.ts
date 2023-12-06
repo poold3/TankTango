@@ -8,6 +8,7 @@ import { MenuComponent } from './components/menu/menu.component';
 import { LoadingComponent } from './components/loading/loading.component';
 import { WaitingroomComponent } from './components/waitingroom/waitingroom.component';
 import { GameroomComponent } from './components/gameroom/gameroom.component';
+import { TankselectionComponent } from './components/tankselection/tankselection.component';
 
 @NgModule({
   declarations: [
@@ -15,7 +16,8 @@ import { GameroomComponent } from './components/gameroom/gameroom.component';
     MenuComponent,
     LoadingComponent,
     WaitingroomComponent,
-    GameroomComponent
+    GameroomComponent,
+    TankselectionComponent
   ],
   imports: [
     BrowserModule,

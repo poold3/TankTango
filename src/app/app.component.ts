@@ -42,12 +42,12 @@ export class AppComponent implements AfterViewInit, OnInit, OnDestroy {
       })
     );
     this.audioService.addAudio("click", "assets/audio/click.mp3", false, 0.2);
+    this.audioService.addAudio("start", "assets/audio/start.mp3", false, 0.1);
     this.audioService.addAudio("boom", "assets/audio/boom-trimmed.mp3"), 0.01;
-    this.audioService.addAudio("synth", "assets/audio/synth-chord.mp3", true, 0.05);
     this.audioService.addAudio("hit", "assets/audio/hit.mp3", false, 0.2);
     this.audioService.addAudio("ultimate", "assets/audio/ultimate.mp3", false, 0.2);
     this.audioService.addAudio("engine", "assets/audio/engine.mp3", false, 0.5);
-    this.audioService.addAudio("start", "assets/audio/start.mp3", false, 0.1);
+    this.audioService.addAudio("synth", "assets/audio/synth-chord.mp3", true, 0.05);
   }
 
   ngAfterViewInit(): void {

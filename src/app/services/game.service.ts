@@ -21,7 +21,6 @@ export class GameService {
   lock = new AsyncLock();
   tankSelection: ServerTank = JSON.parse(JSON.stringify(EmptyTank));
   gameCode: string = "";
-  port: number = -1;
   serverTanks: Array<ServerTank> = new Array<ServerTank>();
   bullets: Array<Bullet> = new Array<Bullet>();
   socket!: WebSocket;
@@ -55,7 +54,6 @@ export class GameService {
   constructor(private readonly stateService: StateService, private readonly http: HttpClient, private readonly canvasService: CanvasService, private readonly audioService: AudioService) {
     this.stateService.addSlice("tankSelection", this.tankSelection);
     this.stateService.addSlice("gameCode", this.gameCode);
-    this.stateService.addSlice("port", this.port);
     this.stateService.addSlice("serverTanks", this.serverTanks);
     this.stateService.addSlice("maze", this.maze);
     this.stateService.addSlice("state", this.state);
@@ -66,9 +64,6 @@ export class GameService {
     });
     this.stateService.select<string>("gameCode").subscribe((gameCode: string): void => {
       this.gameCode = gameCode;
-    });
-    this.stateService.select<number>("port").subscribe((port: number): void => {
-      this.port = port;
     });
     this.stateService.select<Array<ServerTank>>("serverTanks").subscribe((serverTanks: Array<ServerTank>): void => {
       this.serverTanks = serverTanks;
@@ -102,9 +97,6 @@ export class GameService {
         this.stateService.dispatch<string>("gameCode", (initialState: string): string => {
           return response.gameCode;
         });
-        this.stateService.dispatch<number>("port", (initialState: number): number => {
-          return response.port;
-        });
         this.connect();
       } else {
         window.alert(response.message);
@@ -127,9 +119,6 @@ export class GameService {
     ).subscribe((response: JoinResponse) => {
       if (response.success) {
         console.log(response);
-        this.stateService.dispatch<number>("port", (initialState: number): number => {
-          return response.port;
-        });
         this.connect();
       } else {
         window.alert(response.message);
@@ -170,7 +159,7 @@ export class GameService {
       tankType: this.tankSelection.type
     }
     const body = JSON.stringify(request);
-    this.createGame$.next(this.http.post<CreateResponse>(`https://${environment.apiUrl}:3000/create/`, body, { headers, responseType: "json" }));
+    this.createGame$.next(this.http.post<CreateResponse>(`https://${environment.apiUrl}/create/`, body, { headers, responseType: "json" }));
   }
 
   joinGame() {
@@ -184,13 +173,13 @@ export class GameService {
       gameCode: this.gameCode
     }
     const body = JSON.stringify(request);
-    this.joinGame$.next(this.http.post<JoinResponse>(`https://${environment.apiUrl}:3000/join/`, body, { headers, responseType: "json" })); 
+    this.joinGame$.next(this.http.post<JoinResponse>(`https://${environment.apiUrl}/join/`, body, { headers, responseType: "json" })); 
   }
 
   connect() {
     // Double check credentials
     if (this.tankSelection.gamerName.trim().length === 0 || this.tankSelection.type === TankType.None ||
-     this.gameCode.length === 0 || this.port === -1) {
+     this.gameCode.length === 0) {
       window.alert("Unable to connect to game. Please retry later.");
       return;
     }
@@ -207,7 +196,7 @@ export class GameService {
     });
 
     // Connect to websocket
-    this.socket = new WebSocket(`wss://${environment.apiUrl}:` + this.port.toString());
+    this.socket = new WebSocket(`wss://${environment.apiUrl}/${this.gameCode}`);
     this.socket.onopen = () => {
 
       this.socket.onmessage = async (event) => {
@@ -333,7 +322,7 @@ export class GameService {
       gameCode: this.gameCode
     }
     const body = JSON.stringify(request);
-    this.startRound$.next(this.http.post<CreateResponse>(`https://${environment.apiUrl}:3000/startRound/`, body, { headers, responseType: "json" }));
+    this.startRound$.next(this.http.post<CreateResponse>(`https://${environment.apiUrl}/startRound/`, body, { headers, responseType: "json" }));
   }
 
   leaveGame() {
@@ -343,9 +332,6 @@ export class GameService {
     //Update all game variables
     this.stateService.dispatch("gameCode", (initialState: string): string => {
       return "";
-    });
-    this.stateService.dispatch("port", (initialState: number): number => {
-      return -1;
     });
     this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
       return JSON.parse(JSON.stringify(EmptyTank));

@@ -38,5 +38,6 @@ export class AudioService {
 export enum AudioType {
   Hit,
   Boom,
-  Ultimate
+  Ultimate,
+  Click
 }

@@ -1,4 +1,4 @@
-import { GameState, Maze } from "./services/game.service";
+import { Bullet } from "./bullet";
 import { ServerTank } from "./tank";
 
 export interface CreateResponse {
@@ -19,11 +19,9 @@ export interface StartRoundResponse {
 
 export enum WssInMessageTypes {
   Maze,
-  TanksUpdate,
+  GameUpdate,
   SelectedTankUpdate,
   GameStateUpdate,
-  NewBullet,
-  EraseBullet,
   PlayAudio,
   Error
 }
@@ -31,4 +29,9 @@ export enum WssInMessageTypes {
 export interface WssInMessage {
   messageType: WssInMessageTypes,
   data: string
+}
+
+export interface GameUpdateData {
+  tanks: Array<ServerTank>,
+  bullets: Array<Bullet>
 }

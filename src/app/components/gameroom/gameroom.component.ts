@@ -12,7 +12,6 @@ import { ServerTank } from 'src/app/tank';
 export class GameroomComponent implements OnInit, OnDestroy {
   subscriptions: Array<Subscription> = new Array<Subscription>();
   serverTanks!: Array<ServerTank>;
-  health!: number;
 
   constructor(private readonly stateService: StateService, private readonly gameService: GameService) { }
 
@@ -22,9 +21,6 @@ export class GameroomComponent implements OnInit, OnDestroy {
       this.stateService.select<Array<ServerTank>>("serverTanks").subscribe((serverTanks: Array<ServerTank>): void => {
         this.serverTanks = serverTanks;
       }),
-      this.stateService.select<number>("health").subscribe((health: number): void => {
-        this.health = health;
-      })
     );
     document.addEventListener("mousemove", this.gameService.mouseMoveHandler);
     document.addEventListener("mousedown", this.gameService.mouseClickHandler);

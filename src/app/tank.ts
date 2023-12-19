@@ -29,6 +29,7 @@ export interface ServerTank {
   heading: number;
   turretHeading: number;
   color: TankColors;
+  health: number;
 }
 
 export interface TankInfo {
@@ -176,5 +177,6 @@ export const EmptyTank: ServerTank = {
   positionY: 0,
   heading: 0.0,
   turretHeading: 0.0,
-  color: TankColors.None
+  color: TankColors.None,
+  health: 0
 }

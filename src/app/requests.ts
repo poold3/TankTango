@@ -20,7 +20,8 @@ export enum WssOutMessageTypes {
   WaitingRoomTankUpdate,
   TankUpdate,
   NewBullet,
-  PlayAudio
+  PlayAudio,
+  NewChatMessage
 }
 
 export interface WssOutMessage {

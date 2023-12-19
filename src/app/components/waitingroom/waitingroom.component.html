@@ -7,6 +7,16 @@
   </div>
 </div>
 
+<div id="chatBox">
+  <div #chat id="chat">
+    <p class="chatMessage" *ngFor="let message of messages; index as i">{{message.gamerName}}: {{message.message}}</p>
+  </div>
+  <div id="send">
+    <input #sendInput id="sendInput" type="text" placeholder="Chat message..." maxlength="100" (focus)="chatGainedFocus()" (blur)="chatLostFocus()" spellcheck="false">
+    <div id="sendIcon" (click)="sendChatMessage()"></div>
+  </div>
+</div>
+
 <div id="waitingRoomComponent">
   <p id="title">WAITING ROOM</p>
   <div id="gameCodeArea">
@@ -27,5 +37,9 @@
       <p class="score">Score: {{serverTank.score}}</p>
     </div>
   </div>
-  <button id="startButton" (click)="startRound()" *ngIf="tankSelection.gameAdmin && serverTanks.length > 1">Start Round</button>
+  
+  <div id="gameAdminSection" *ngIf="tankSelection.gameAdmin && serverTanks.length > 1">
+    <h2>Make sure everyone is ready before starting!</h2>
+    <button id="startButton" (click)="startRound()" >Start Round</button>
+  </div>
 </div>

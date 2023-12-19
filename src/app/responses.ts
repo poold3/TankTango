@@ -1,4 +1,4 @@
-import { Bullet } from "./bullet";
+import { Bullet, FromServerBullet } from "./bullet";
 import { ServerTank } from "./tank";
 
 export interface CreateResponse {
@@ -23,6 +23,7 @@ export enum WssInMessageTypes {
   SelectedTankUpdate,
   GameStateUpdate,
   PlayAudio,
+  NewChatMessage,
   Error
 }
 
@@ -33,5 +34,5 @@ export interface WssInMessage {
 
 export interface GameUpdateData {
   tanks: Array<ServerTank>,
-  bullets: Array<Bullet>
+  bullets: Array<FromServerBullet>
 }

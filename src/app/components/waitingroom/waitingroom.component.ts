@@ -1,6 +1,7 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewChecked, AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ClipboardService } from 'ngx-clipboard';
 import { Subscription } from 'rxjs';
+import { Message } from 'src/app/message';
 import { GameService } from 'src/app/services/game.service';
 import { StateService } from 'src/app/services/state.service';
 import { ServerTank, TankType } from 'src/app/tank';
@@ -10,12 +11,17 @@ import { ServerTank, TankType } from 'src/app/tank';
   templateUrl: './waitingroom.component.html',
   styleUrls: ['./waitingroom.component.css']
 })
-export class WaitingroomComponent implements OnDestroy, OnInit {
+export class WaitingroomComponent implements OnDestroy, OnInit, AfterViewInit, AfterViewChecked {
   subscriptions: Subscription[] = new Array<Subscription>();
   serverTanks: Array<ServerTank> = new Array();
   gameCode: string = "";
   tankSelection!: ServerTank;
   showTankGuide: boolean = false;
+  @ViewChild("chat") chat!: ElementRef;
+  chatElement!: HTMLInputElement;
+  @ViewChild("sendInput") sendInput!: ElementRef;
+  sendInputElement!: HTMLInputElement;
+  messages: Array<Message> = new Array<Message>();
 
   constructor(private readonly stateService: StateService, private clipboardService: ClipboardService, private readonly gameService: GameService) {}
 
@@ -31,8 +37,20 @@ export class WaitingroomComponent implements OnDestroy, OnInit {
       }),
       this.stateService.select<string>("gameCode").subscribe((gameCode: string): void => {
         this.gameCode = gameCode;
+      }),
+      this.stateService.select<Array<Message>>("chat").subscribe((messages: Array<Message>): void => {
+        this.messages = messages;
       })
     );
+  }
+
+  ngAfterViewInit(): void {
+    this.chatElement = this.chat.nativeElement;
+    this.sendInputElement = this.sendInput.nativeElement;
+  }
+
+  ngAfterViewChecked(): void {
+    this.chatElement.scrollTop = this.chatElement.scrollHeight;
   }
 
   ngOnDestroy(): void {
@@ -51,5 +69,28 @@ export class WaitingroomComponent implements OnDestroy, OnInit {
 
   startRound() {
     this.gameService.startRound();
+  }
+
+  sendChatMessage() {
+    const message: string = this.sendInputElement.value.trim();
+    if (message.length > 0) {
+      const newMessage: Message = new Message(message, this.tankSelection.gamerName, this.tankSelection.color);
+      this.sendInputElement.value = "";
+      this.gameService.sendChatMessage(newMessage);
+    }
+  }
+
+  chatGainedFocus() {
+    document.addEventListener("keydown", this.isEnterKey);
+  }
+
+  chatLostFocus() {
+    document.removeEventListener("keydown", this.isEnterKey);
+  }
+
+  isEnterKey = (event: KeyboardEvent) => {
+    if (event.code === "Enter") {
+      this.sendChatMessage();
+    }
   }
 }

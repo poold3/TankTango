@@ -12,7 +12,8 @@ import {v4 as uuidv4} from 'uuid'
 import { AudioService, AudioType } from './audio.service';
 import { environment } from 'src/environments/environment';
 import * as AsyncLock from 'async-lock';
-import { Bullet, ServerBullet } from '../bullet';
+import { Bullet, BulletInfo, FromServerBullet, ServerBullet } from '../bullet';
+import { Message } from '../message';
 
 @Injectable({
   providedIn: 'root'
@@ -47,8 +48,8 @@ export class GameService {
   tankReference: TankInfo = TankTank;
   animationRequest: number = 0;
   timeouts: Array<number> = new Array<number>();
-  xCorrection: number = 0;
-  yCorrection: number = 0;
+  serverUpdates: boolean = false;
+  messages: Array<Message> = new Array<Message>();
 
   constructor(private readonly stateService: StateService, private readonly http: HttpClient, private readonly canvasService: CanvasService, private readonly audioService: AudioService) {
     this.stateService.addSlice("tankSelection", this.tankSelection);
@@ -57,6 +58,7 @@ export class GameService {
     this.stateService.addSlice("bullets", this.bullets);
     this.stateService.addSlice("maze", this.maze);
     this.stateService.addSlice("state", this.state);
+    this.stateService.addSlice("chat", this.messages);
 
     this.stateService.select<ServerTank>("tankSelection").subscribe((tankSelection: ServerTank): void => {
       this.tankSelection = tankSelection;
@@ -76,6 +78,9 @@ export class GameService {
     this.stateService.select<GameState>("state").subscribe((state: GameState): void => {
       this.state = state;
     });
+    this.stateService.select<Array<Message>>("chat").subscribe((messages: Array<Message>): void => {
+      this.messages = messages;
+    });
     this.createGame$.pipe(
       switchMap((response: Observable<CreateResponse>) => response.pipe(
         timeout(10000),
@@ -92,7 +97,6 @@ export class GameService {
       ))
     ).subscribe((response: CreateResponse) => {
       if (response.success) {
-        console.log(response);
         this.stateService.dispatch<string>("gameCode", (initialState: string): string => {
           return response.gameCode;
         });
@@ -117,7 +121,6 @@ export class GameService {
       ))
     ).subscribe((response: JoinResponse) => {
       if (response.success) {
-        console.log(response);
         this.connect();
       } else {
         window.alert(response.message);
@@ -190,6 +193,9 @@ export class GameService {
     this.stateService.dispatch("state", (initialState: GameState): GameState => {
       return GameState.Waiting;
     });
+    this.stateService.dispatch("chat", (initialState: Array<Message>): Array<Message> => {
+      return new Array<Message>();
+    });
 
     // Begin loading
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
@@ -207,9 +213,12 @@ export class GameService {
           this.stateService.dispatch("serverTanks", (initialState: Array<ServerTank>): Array<ServerTank> => {
             return gameData.tanks;
           });
-          this.stateService.dispatch("bullets", (initialState: Array<Bullet>): Array<Bullet> => {
-            return gameData.bullets;
+          await this.lock.acquire("bullets", () => {
+            this.stateService.dispatch("bullets", (initialState: Array<Bullet>): Array<Bullet> => {
+              return gameData.bullets.map((bullet: FromServerBullet) => new Bullet(bullet));
+            });
           });
+          this.serverUpdates = true;
         } else if (message.messageType == WssInMessageTypes.PlayAudio) {
           const audioType: AudioType = JSON.parse(message.data);
           if (audioType === AudioType.Boom) {
@@ -254,6 +263,12 @@ export class GameService {
               break;
             }
           }
+        } else if (message.messageType == WssInMessageTypes.NewChatMessage) {
+          const newMessage: Message = JSON.parse(message.data);
+          this.stateService.dispatch("chat", (initialState: Array<Message>): Array<Message> => {
+            initialState.push(newMessage);
+            return initialState;
+          });
         } else if (message.messageType == WssInMessageTypes.Error) {
           const errorMessage: string = JSON.parse(message.data);
           console.error(errorMessage);
@@ -423,6 +438,8 @@ export class GameService {
       return false;
     });
 
+    this.bullets.length = 0;
+
     this.animationRequest = window.requestAnimationFrame(this.animationFrame.bind(this));
   }
 
@@ -489,6 +506,89 @@ export class GameService {
     // Turn turret
     this.tankSelection.turretHeading = Math.atan2(((this.mousePositionY - this.mazeStartY) - this.tankSelection.positionY) * -1.0, (this.mousePositionX - this.mazeStartX) - this.tankSelection.positionX) * 180.0 / Math.PI;
 
+    if (!this.serverUpdates) {
+      await this.lock.acquire("bullets", () => {
+        for (let i = 0; i < this.bullets.length; ++i) {
+          // Remove bullet if timeout
+          if (!this.bullets[i].isAlive()) {
+            this.bullets.splice(i, 1);
+            i -= 1;
+            continue;
+          }
+          
+          // Compute bounces
+          const roomX = Math.floor(this.bullets[i].bullet.positionX / this.maze.step);
+          const roomY = Math.floor(this.bullets[i].bullet.positionY / this.maze.step);
+          const room: Room = this.maze.rooms[roomY][roomX];
+  
+          let foundBounce = false;
+          if (room.plusX && ((roomX + 1) * this.maze.step) - this.bullets[i].bullet.positionX <= BulletInfo.speed && this.bullets[i].bullet.incrementX > 0.0) {
+            this.bullets[i].bounceX();
+            foundBounce = true;
+            if (this.bullets[i].bullet.demolition && roomX < this.maze.numRoomsWide - 1) {
+              this.maze.rooms[roomY][roomX].plusX = false;
+              if (roomX + 1 < this.maze.numRoomsWide) {
+                this.maze.rooms[roomY][roomX + 1].minusX = false;
+              }
+            }
+          } else if (room.minusX && this.bullets[i].bullet.positionX - (roomX * this.maze.step) <= BulletInfo.speed && this.bullets[i].bullet.incrementX < 0.0) {
+            this.bullets[i].bounceX();
+            foundBounce = true;
+            if (this.bullets[i].bullet.demolition && roomX > 0) {
+              this.maze.rooms[roomY][roomX].minusX = false;
+              if (roomX - 1 >= 0) {
+                this.maze.rooms[roomY][roomX - 1].plusX = false;
+              }
+            }
+          }
+          if (room.plusY && ((roomY + 1) * this.maze.step) - this.bullets[i].bullet.positionY <= BulletInfo.speed && this.bullets[i].bullet.incrementY > 0.0) {
+            this.bullets[i].bounceY();
+            foundBounce = true;
+            if (this.bullets[i].bullet.demolition && roomY < this.maze.numRoomsHigh - 1) {
+              this.maze.rooms[roomY][roomX].plusY = false;
+              if (roomY + 1 < this.maze.numRoomsHigh) {
+                this.maze.rooms[roomY + 1][roomX].minusY = false;
+              }
+            }
+          } else if (room.minusY && this.bullets[i].bullet.positionY - (roomY * this.maze.step) <= BulletInfo.speed && this.bullets[i].bullet.incrementY < 0.0) {
+            this.bullets[i].bounceY();
+            foundBounce = true;
+            if (this.bullets[i].bullet.demolition && roomY > 0) {
+              this.maze.rooms[roomY][roomX].minusY = false;
+              if (roomY - 1 >= 0) {
+                this.maze.rooms[roomY - 1][roomX].plusY = false;
+              }
+            }
+          }
+  
+          //Calculate filled corners
+          if (!foundBounce) {
+            if (((roomX + 1) * this.maze.step) - this.bullets[i].bullet.positionX <= BulletInfo.speed && ((roomY + 1) * this.maze.step) - this.bullets[i].bullet.positionY <= BulletInfo.speed && !room.plusX && !room.plusY && roomX + 1 < this.maze.numRoomsWide && roomY + 1 < this.maze.numRoomsHigh && this.maze.rooms[roomY + 1][roomX + 1].minusX && this.maze.rooms[roomY + 1][roomX + 1].minusY) {
+              this.bullets[i].bounceX();
+              this.bullets[i].bounceY();
+              foundBounce = true;
+            } else if (((roomX + 1) * this.maze.step) - this.bullets[i].bullet.positionX <= BulletInfo.speed && this.bullets[i].bullet.positionY - (roomY * this.maze.step) <= BulletInfo.speed && !room.plusX && !room.minusY && roomX + 1 < this.maze.numRoomsWide && roomY - 1 >= 0 && this.maze.rooms[roomY - 1][roomX + 1].minusX && this.maze.rooms[roomY - 1][roomX + 1].plusY) {
+              this.bullets[i].bounceX();
+              this.bullets[i].bounceY();
+              foundBounce = true;
+            } else if (this.bullets[i].bullet.positionX - (roomX * this.maze.step) <= BulletInfo.speed && ((roomY + 1) * this.maze.step) - this.bullets[i].bullet.positionY <= BulletInfo.speed && !room.minusX && !room.plusY && roomX - 1 >= 0 && roomY + 1 < this.maze.numRoomsHigh && this.maze.rooms[roomY + 1][roomX - 1].plusX && this.maze.rooms[roomY + 1][roomX - 1].minusY) {
+              this.bullets[i].bounceX();
+              this.bullets[i].bounceY();
+              foundBounce = true;
+            } else if (this.bullets[i].bullet.positionX - (roomX * this.maze.step) <= BulletInfo.speed && this.bullets[i].bullet.positionY - (roomY * this.maze.step) <= BulletInfo.speed && !room.minusX && !room.minusY && roomX - 1 >= 0 && roomY - 1 >= 0 && this.maze.rooms[roomY - 1][roomX - 1].plusX && this.maze.rooms[roomY - 1][roomX - 1].plusY) {
+              this.bullets[i].bounceX();
+              this.bullets[i].bounceY();
+              foundBounce = true;
+            }
+          }
+  
+          // Move the bullet
+          this.bullets[i].move();
+        }
+      });
+    }
+    this.serverUpdates = false;
+    
     //Send our selected tank to the server
     const message: WssOutMessage = {
       messageType: WssOutMessageTypes.TankUpdate,
@@ -777,6 +877,14 @@ export class GameService {
       heading -= 360.0;
     }
     return heading;
+  }
+
+  sendChatMessage(message: Message) {
+    const socketMessage: WssOutMessage = {
+      messageType: WssOutMessageTypes.NewChatMessage,
+      data: JSON.stringify(message)
+    }
+    this.socket.send(JSON.stringify(socketMessage));
   }
 
 }

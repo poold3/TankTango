@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { EmptyMaze, Maze, Room } from './game.service';
 import { AssaultTank, DemolitionTank, EmptyTank, ScoutTank, ServerTank, TankTank, TankType } from '../tank';
-import { Bullet, BULLET_RADIUS } from '../bullet';
+import { Bullet, BulletInfo } from '../bullet';
 import { StateService } from './state.service';
 
 @Injectable({
@@ -210,12 +210,10 @@ export class CanvasService {
       const tankWidth = this.getTankWidthByType(tankToDraw.type);
       const tankLength = this.getTankLengthByType(tankToDraw.type);
       this.ctx.fillStyle = "black";
-      if (tankToDraw.positionY - 50 > -10.0) {
-        if (!isSelectedTank) {
-          let nameLength = this.gamerNameLengths.get(tankToDraw.gamerName);
-          if (nameLength) {
-            this.ctx.fillText(tankToDraw.gamerName, (tankToDraw.positionX + this.mazeStartX) - (nameLength / 2.0), (tankToDraw.positionY + this.mazeStartY) - 30);
-          }
+      if (!isSelectedTank) {
+        let nameLength = this.gamerNameLengths.get(tankToDraw.gamerName);
+        if (nameLength) {
+          this.ctx.fillText(tankToDraw.gamerName, (tankToDraw.positionX + this.mazeStartX) - (nameLength / 2.0), (tankToDraw.positionY + this.mazeStartY) - 30);
         }
       }
       
@@ -239,7 +237,7 @@ export class CanvasService {
     this.ctx.fillStyle = "black";
     this.bullets.forEach((bullet: Bullet) => {
       this.ctx.beginPath();
-      this.ctx.arc(bullet.positionX + this.mazeStartX, bullet.positionY + this.mazeStartY, BULLET_RADIUS, 0, 2 * Math.PI);
+      this.ctx.arc(bullet.bullet.positionX + this.mazeStartX, bullet.bullet.positionY + this.mazeStartY, BulletInfo.radius, 0, 2 * Math.PI);
       this.ctx.fill();
     });
   }

@@ -67,8 +67,14 @@ export class WaitingroomComponent implements OnDestroy, OnInit, AfterViewInit, A
     this.gameService.leaveGame();
   }
 
-  startRound() {
-    this.gameService.startRound();
+  changeReadyStatus() {
+    this.stateService.dispatch("tankSelection", (initialState: ServerTank): ServerTank => {
+      return {
+        ...initialState,
+        ready: !(initialState.ready)
+      }
+    });
+    this.gameService.waitingRoomUpdate();
   }
 
   sendChatMessage() {

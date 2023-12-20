@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { StateService } from './state.service';
 import { AssaultTank, DemolitionTank, EmptyTank, ScoutTank, ServerTank, TankInfo, TankTank, TankType } from '../tank';
-import { CreateResponse, GameUpdateData, JoinResponse, StartRoundResponse, WssInMessage, WssInMessageTypes } from '../responses';
+import { CreateResponse, GameUpdateData, JoinResponse, WssInMessage, WssInMessageTypes } from '../responses';
 import { EMPTY, Observable, Subject, catchError, finalize, switchMap, timeout } from 'rxjs';
-import { CreateRequest, JoinRequest, StartRoundRequest, WssOutMessage, WssOutMessageTypes } from '../requests';
+import { CreateRequest, JoinRequest, WssOutMessage, WssOutMessageTypes } from '../requests';
 import { HttpClient } from '@angular/common/http';
 import { CanvasService } from './canvas.service';
 import { Point, rotatePoint } from '../point';
@@ -29,7 +29,6 @@ export class GameService {
   state: GameState = GameState.Menu;
   createGame$: Subject<Observable<CreateResponse>> = new Subject<Observable<CreateResponse>>;
   joinGame$: Subject<Observable<JoinResponse>> = new Subject<Observable<JoinResponse>>;
-  startRound$: Subject<Observable<StartRoundResponse>> = new Subject<Observable<StartRoundResponse>>;
   mousePositionX: number = 0;
   mousePositionY: number = 0;
   bulletsAvailable: number = 0;
@@ -126,29 +125,6 @@ export class GameService {
         window.alert(response.message);
       }
     });
-    this.startRound$.pipe(
-      switchMap((response: Observable<StartRoundResponse>) => response.pipe(
-        timeout(10000),
-        finalize(() => {
-          if (this.state !== GameState.Countdown) {
-            this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
-              return false;
-            });
-          }
-        }),
-        catchError(error => {
-          console.error(error);
-          window.alert(error.message);
-          return EMPTY;
-        })
-      ))
-    ).subscribe((response: StartRoundResponse) => {
-      if (response.success) {
-        
-      } else {
-        window.alert("Failed to start round. " + response.message);
-      }
-    });
 
     this.canvasService.loadSubscriptions();
   }
@@ -193,9 +169,6 @@ export class GameService {
     this.stateService.dispatch("state", (initialState: GameState): GameState => {
       return GameState.Waiting;
     });
-    this.stateService.dispatch("chat", (initialState: Array<Message>): Array<Message> => {
-      return new Array<Message>();
-    });
 
     // Begin loading
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
@@ -220,16 +193,18 @@ export class GameService {
           });
           this.serverUpdates = true;
         } else if (message.messageType == WssInMessageTypes.PlayAudio) {
-          const audioType: AudioType = JSON.parse(message.data);
-          if (audioType === AudioType.Boom) {
-            this.audioService.playAudio("boom");
-          } else if (audioType === AudioType.Hit) {
-            this.audioService.playAudio("hit");
-          } else if (audioType === AudioType.Ultimate) {
-            this.audioService.playAudio("ultimate");
-          } else if (audioType === AudioType.Click) {
-            this.audioService.playAudio("click");
-          } 
+          const audioTypes: Array<AudioType> = JSON.parse(message.data);
+          audioTypes.forEach((audioType: AudioType) => {
+            if (audioType === AudioType.Click) {
+              this.audioService.playAudio("click");
+            }  else if (audioType === AudioType.Hit) {
+              this.audioService.playAudio("hit");
+            } else if (audioType === AudioType.Boom) {
+              this.audioService.playAudio("boom");
+            } else if (audioType === AudioType.Ultimate) {
+              this.audioService.playAudio("ultimate");
+            }
+          });
         } else if (message.messageType == WssInMessageTypes.Maze) {
           const maze: Maze = JSON.parse(message.data);
           this.stateService.dispatch("maze", (initialState: Maze): Maze => {
@@ -297,7 +272,7 @@ export class GameService {
     };
   }
 
-  switchTanks() {
+  waitingRoomUpdate() {
     // Begin loading
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
       return true;
@@ -305,7 +280,7 @@ export class GameService {
 
     // Build message
     const message: WssOutMessage = {
-      messageType: WssOutMessageTypes.WaitingRoomTankUpdate,
+      messageType: WssOutMessageTypes.WaitingRoomUpdate,
       data: JSON.stringify(this.tankSelection)
     }
 
@@ -316,18 +291,6 @@ export class GameService {
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
       return false;
     });
-  }
-
-  startRound() {
-    this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
-      return true;
-    });
-    const headers = { 'content-type': 'application/json' };
-    const request: StartRoundRequest = {
-      gameCode: this.gameCode
-    }
-    const body = JSON.stringify(request);
-    this.startRound$.next(this.http.post<CreateResponse>(`https://${environment.apiUrl}/startRound/`, body, { headers, responseType: "json" }));
   }
 
   leaveGame() {
@@ -349,6 +312,9 @@ export class GameService {
     });
     this.stateService.dispatch("maze", (initialState: Maze): Maze => {
       return JSON.parse(JSON.stringify(EmptyMaze));
+    });
+    this.stateService.dispatch("chat", (initialState: Array<Message>): Array<Message> => {
+      return new Array<Message>();
     });
 
     // Make sure we are not loading. Proceed to menu.
@@ -387,8 +353,6 @@ export class GameService {
   }
 
   startCountdown() {
-    //Play engine sound
-    this.audioService.playAudio("engine");
     this.audioService.playAudio("start");
     // Show proper display
     this.stateService.dispatch<boolean>("showMenu", (initialState: boolean): boolean => {
@@ -437,8 +401,6 @@ export class GameService {
     this.stateService.dispatch<boolean>("isLoading", (initialState: boolean): boolean => {
       return false;
     });
-
-    this.bullets.length = 0;
 
     this.animationRequest = window.requestAnimationFrame(this.animationFrame.bind(this));
   }
@@ -504,88 +466,10 @@ export class GameService {
     }
 
     // Turn turret
-    this.tankSelection.turretHeading = Math.atan2(((this.mousePositionY - this.mazeStartY) - this.tankSelection.positionY) * -1.0, (this.mousePositionX - this.mazeStartX) - this.tankSelection.positionX) * 180.0 / Math.PI;
+    this.tankSelection.turretHeading = this.correctHeading(Math.atan2(((this.mousePositionY - this.mazeStartY) - this.tankSelection.positionY) * -1.0, (this.mousePositionX - this.mazeStartX) - this.tankSelection.positionX) * 180.0 / Math.PI);
 
     if (!this.serverUpdates) {
-      await this.lock.acquire("bullets", () => {
-        for (let i = 0; i < this.bullets.length; ++i) {
-          // Remove bullet if timeout
-          if (!this.bullets[i].isAlive()) {
-            this.bullets.splice(i, 1);
-            i -= 1;
-            continue;
-          }
-          
-          // Compute bounces
-          const roomX = Math.floor(this.bullets[i].bullet.positionX / this.maze.step);
-          const roomY = Math.floor(this.bullets[i].bullet.positionY / this.maze.step);
-          const room: Room = this.maze.rooms[roomY][roomX];
-  
-          let foundBounce = false;
-          if (room.plusX && ((roomX + 1) * this.maze.step) - this.bullets[i].bullet.positionX <= BulletInfo.speed && this.bullets[i].bullet.incrementX > 0.0) {
-            this.bullets[i].bounceX();
-            foundBounce = true;
-            if (this.bullets[i].bullet.demolition && roomX < this.maze.numRoomsWide - 1) {
-              this.maze.rooms[roomY][roomX].plusX = false;
-              if (roomX + 1 < this.maze.numRoomsWide) {
-                this.maze.rooms[roomY][roomX + 1].minusX = false;
-              }
-            }
-          } else if (room.minusX && this.bullets[i].bullet.positionX - (roomX * this.maze.step) <= BulletInfo.speed && this.bullets[i].bullet.incrementX < 0.0) {
-            this.bullets[i].bounceX();
-            foundBounce = true;
-            if (this.bullets[i].bullet.demolition && roomX > 0) {
-              this.maze.rooms[roomY][roomX].minusX = false;
-              if (roomX - 1 >= 0) {
-                this.maze.rooms[roomY][roomX - 1].plusX = false;
-              }
-            }
-          }
-          if (room.plusY && ((roomY + 1) * this.maze.step) - this.bullets[i].bullet.positionY <= BulletInfo.speed && this.bullets[i].bullet.incrementY > 0.0) {
-            this.bullets[i].bounceY();
-            foundBounce = true;
-            if (this.bullets[i].bullet.demolition && roomY < this.maze.numRoomsHigh - 1) {
-              this.maze.rooms[roomY][roomX].plusY = false;
-              if (roomY + 1 < this.maze.numRoomsHigh) {
-                this.maze.rooms[roomY + 1][roomX].minusY = false;
-              }
-            }
-          } else if (room.minusY && this.bullets[i].bullet.positionY - (roomY * this.maze.step) <= BulletInfo.speed && this.bullets[i].bullet.incrementY < 0.0) {
-            this.bullets[i].bounceY();
-            foundBounce = true;
-            if (this.bullets[i].bullet.demolition && roomY > 0) {
-              this.maze.rooms[roomY][roomX].minusY = false;
-              if (roomY - 1 >= 0) {
-                this.maze.rooms[roomY - 1][roomX].plusY = false;
-              }
-            }
-          }
-  
-          //Calculate filled corners
-          if (!foundBounce) {
-            if (((roomX + 1) * this.maze.step) - this.bullets[i].bullet.positionX <= BulletInfo.speed && ((roomY + 1) * this.maze.step) - this.bullets[i].bullet.positionY <= BulletInfo.speed && !room.plusX && !room.plusY && roomX + 1 < this.maze.numRoomsWide && roomY + 1 < this.maze.numRoomsHigh && this.maze.rooms[roomY + 1][roomX + 1].minusX && this.maze.rooms[roomY + 1][roomX + 1].minusY) {
-              this.bullets[i].bounceX();
-              this.bullets[i].bounceY();
-              foundBounce = true;
-            } else if (((roomX + 1) * this.maze.step) - this.bullets[i].bullet.positionX <= BulletInfo.speed && this.bullets[i].bullet.positionY - (roomY * this.maze.step) <= BulletInfo.speed && !room.plusX && !room.minusY && roomX + 1 < this.maze.numRoomsWide && roomY - 1 >= 0 && this.maze.rooms[roomY - 1][roomX + 1].minusX && this.maze.rooms[roomY - 1][roomX + 1].plusY) {
-              this.bullets[i].bounceX();
-              this.bullets[i].bounceY();
-              foundBounce = true;
-            } else if (this.bullets[i].bullet.positionX - (roomX * this.maze.step) <= BulletInfo.speed && ((roomY + 1) * this.maze.step) - this.bullets[i].bullet.positionY <= BulletInfo.speed && !room.minusX && !room.plusY && roomX - 1 >= 0 && roomY + 1 < this.maze.numRoomsHigh && this.maze.rooms[roomY + 1][roomX - 1].plusX && this.maze.rooms[roomY + 1][roomX - 1].minusY) {
-              this.bullets[i].bounceX();
-              this.bullets[i].bounceY();
-              foundBounce = true;
-            } else if (this.bullets[i].bullet.positionX - (roomX * this.maze.step) <= BulletInfo.speed && this.bullets[i].bullet.positionY - (roomY * this.maze.step) <= BulletInfo.speed && !room.minusX && !room.minusY && roomX - 1 >= 0 && roomY - 1 >= 0 && this.maze.rooms[roomY - 1][roomX - 1].plusX && this.maze.rooms[roomY - 1][roomX - 1].plusY) {
-              this.bullets[i].bounceX();
-              this.bullets[i].bounceY();
-              foundBounce = true;
-            }
-          }
-  
-          // Move the bullet
-          this.bullets[i].move();
-        }
-      });
+      this.updateBullets();
     }
     this.serverUpdates = false;
     
@@ -803,7 +687,7 @@ export class GameService {
     }
 
     const WALL_SPACE = 4;
-    // Compute stops
+    // Compute stops on walls
     for (let i = 0; i < rotatedPoints.length; ++i) {
       if (minusY && !this.stopMovement.PlusX && !this.stopMovement.MinusX) {
         if (Math.abs(rotatedPoints[i].x - nearestIntersectionValueX) < WALL_SPACE && rotatedPoints[i].y < nearestIntersectionValueY) {
@@ -868,6 +752,89 @@ export class GameService {
     }
 
     return intersections % 2 === 1;
+  }
+
+  // The server has the final say on bullets. But if the server is being slow, we can predict the bullet positions in the mean time.
+  async updateBullets() {
+    await this.lock.acquire("bullets", () => {
+      for (let i = 0; i < this.bullets.length; ++i) {
+        // Remove bullet if timeout
+        if (!this.bullets[i].isAlive()) {
+          this.bullets.splice(i, 1);
+          i -= 1;
+          continue;
+        }
+        
+        // Compute bounces
+        const roomX = Math.floor(this.bullets[i].bullet.positionX / this.maze.step);
+        const roomY = Math.floor(this.bullets[i].bullet.positionY / this.maze.step);
+        const room: Room = this.maze.rooms[roomY][roomX];
+
+        let foundBounce = false;
+        if (this.bullets[i].bullet.incrementX > 0.0 && room.plusX && ((roomX + 1) * this.maze.step) - this.bullets[i].bullet.positionX <= BulletInfo.speed) {
+          this.bullets[i].bounceX();
+          foundBounce = true;
+          if (this.bullets[i].bullet.demolition && roomX < this.maze.numRoomsWide - 1) {
+            this.maze.rooms[roomY][roomX].plusX = false;
+            if (roomX + 1 < this.maze.numRoomsWide) {
+              this.maze.rooms[roomY][roomX + 1].minusX = false;
+            }
+          }
+        } else if (this.bullets[i].bullet.incrementX < 0.0 && room.minusX && this.bullets[i].bullet.positionX - (roomX * this.maze.step) <= BulletInfo.speed) {
+          this.bullets[i].bounceX();
+          foundBounce = true;
+          if (this.bullets[i].bullet.demolition && roomX > 0) {
+            this.maze.rooms[roomY][roomX].minusX = false;
+            if (roomX - 1 >= 0) {
+              this.maze.rooms[roomY][roomX - 1].plusX = false;
+            }
+          }
+        }
+        if (this.bullets[i].bullet.incrementY > 0.0 && room.plusY && ((roomY + 1) * this.maze.step) - this.bullets[i].bullet.positionY <= BulletInfo.speed) {
+          this.bullets[i].bounceY();
+          foundBounce = true;
+          if (this.bullets[i].bullet.demolition && roomY < this.maze.numRoomsHigh - 1) {
+            this.maze.rooms[roomY][roomX].plusY = false;
+            if (roomY + 1 < this.maze.numRoomsHigh) {
+              this.maze.rooms[roomY + 1][roomX].minusY = false;
+            }
+          }
+        } else if (this.bullets[i].bullet.incrementY < 0.0 && room.minusY && this.bullets[i].bullet.positionY - (roomY * this.maze.step) <= BulletInfo.speed) {
+          this.bullets[i].bounceY();
+          foundBounce = true;
+          if (this.bullets[i].bullet.demolition && roomY > 0) {
+            this.maze.rooms[roomY][roomX].minusY = false;
+            if (roomY - 1 >= 0) {
+              this.maze.rooms[roomY - 1][roomX].plusY = false;
+            }
+          }
+        }
+
+        //Calculate bounces from corners
+        if (!foundBounce) {
+          if (((roomX + 1) * this.maze.step) - this.bullets[i].bullet.positionX <= BulletInfo.speed && ((roomY + 1) * this.maze.step) - this.bullets[i].bullet.positionY <= BulletInfo.speed && !room.plusX && !room.plusY && roomX + 1 < this.maze.numRoomsWide && roomY + 1 < this.maze.numRoomsHigh && this.maze.rooms[roomY + 1][roomX + 1].minusX && this.maze.rooms[roomY + 1][roomX + 1].minusY && this.bullets[i].bullet.heading < 360.0 && this.bullets[i].bullet.heading > 270.0) {
+            this.bullets[i].bounceX();
+            this.bullets[i].bounceY();
+            foundBounce = true;
+          } else if (((roomX + 1) * this.maze.step) - this.bullets[i].bullet.positionX <= BulletInfo.speed && this.bullets[i].bullet.positionY - (roomY * this.maze.step) <= BulletInfo.speed && !room.plusX && !room.minusY && roomX + 1 < this.maze.numRoomsWide && roomY - 1 >= 0 && this.maze.rooms[roomY - 1][roomX + 1].minusX && this.maze.rooms[roomY - 1][roomX + 1].plusY && this.bullets[i].bullet.heading < 90.0 && this.bullets[i].bullet.heading > 0.0) {
+            this.bullets[i].bounceX();
+            this.bullets[i].bounceY();
+            foundBounce = true;
+          } else if (this.bullets[i].bullet.positionX - (roomX * this.maze.step) <= BulletInfo.speed && ((roomY + 1) * this.maze.step) - this.bullets[i].bullet.positionY <= BulletInfo.speed && !room.minusX && !room.plusY && roomX - 1 >= 0 && roomY + 1 < this.maze.numRoomsHigh && this.maze.rooms[roomY + 1][roomX - 1].plusX && this.maze.rooms[roomY + 1][roomX - 1].minusY && this.bullets[i].bullet.heading < 270.0 && this.bullets[i].bullet.heading > 180.0) {
+            this.bullets[i].bounceX();
+            this.bullets[i].bounceY();
+            foundBounce = true;
+          } else if (this.bullets[i].bullet.positionX - (roomX * this.maze.step) <= BulletInfo.speed && this.bullets[i].bullet.positionY - (roomY * this.maze.step) <= BulletInfo.speed && !room.minusX && !room.minusY && roomX - 1 >= 0 && roomY - 1 >= 0 && this.maze.rooms[roomY - 1][roomX - 1].plusX && this.maze.rooms[roomY - 1][roomX - 1].plusY && this.bullets[i].bullet.heading < 180.0 && this.bullets[i].bullet.heading > 90.0) {
+            this.bullets[i].bounceX();
+            this.bullets[i].bounceY();
+            foundBounce = true;
+          }
+        }
+
+        // Move the bullet
+        this.bullets[i].move();
+      }
+    });
   }
 
   correctHeading(heading: number): number {

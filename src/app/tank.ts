@@ -19,7 +19,6 @@ export enum TankType {
 
 export interface ServerTank {
   gamerName: string;
-  gameAdmin: boolean;
   type: TankType;
   alive: boolean;
   score: number;
@@ -30,6 +29,7 @@ export interface ServerTank {
   turretHeading: number;
   color: TankColors;
   health: number;
+  ready: boolean;
 }
 
 export interface TankInfo {
@@ -168,7 +168,6 @@ DemolitionTank.edges.push(new Line(DemolitionTank.vertices[7], DemolitionTank.ve
 
 export const EmptyTank: ServerTank = {
   gamerName: "",
-  gameAdmin: false,
   alive: false,
   score: 0,
   ultimateActive: false,
@@ -178,5 +177,6 @@ export const EmptyTank: ServerTank = {
   heading: 0.0,
   turretHeading: 0.0,
   color: TankColors.None,
-  health: 0
+  health: 0,
+  ready: false
 }

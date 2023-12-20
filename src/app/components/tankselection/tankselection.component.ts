@@ -42,7 +42,7 @@ export class TankselectionComponent implements OnInit, OnDestroy {
       }
     });
     if (this.state === GameState.Waiting) {
-      this.gameService.switchTanks();
+      this.gameService.waitingRoomUpdate();
       this.closeTankGuide.emit();
     }
   }

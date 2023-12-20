@@ -11,13 +11,9 @@ export interface JoinRequest {
   gameCode: string;
 }
 
-export interface StartRoundRequest {
-  gameCode: string;
-}
-
 export enum WssOutMessageTypes {
   Connection,
-  WaitingRoomTankUpdate,
+  WaitingRoomUpdate,
   TankUpdate,
   NewBullet,
   PlayAudio,

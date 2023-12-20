@@ -128,7 +128,7 @@
 
 .tank {
   width: 200px;
-  height: 200px;
+  height: 250px;
   border-radius: 5px;
   margin: 15px;
   display: flex;
@@ -209,7 +209,7 @@
   color: white;
 }
 
-#startButton {
+#readyButton {
   width: 200px;
   height: 50px;
   font-size: 20px;
@@ -219,7 +219,7 @@
   cursor: pointer;
 }
 
-#startButton:hover {
+#readyButton:hover {
   transform: scale(1.05);
 }
 

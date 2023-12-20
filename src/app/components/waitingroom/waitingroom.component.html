@@ -35,11 +35,11 @@
       <p class="tankName" *ngIf="serverTank.type == 4">Demolition Tank</p>
       <div [ngClass]="{'tankTankImage': serverTank.type == 1, 'assaultTankImage': serverTank.type == 2, 'scoutTankImage': serverTank.type == 3, 'demolitionTankImage': serverTank.type == 4}"></div>
       <p class="score">Score: {{serverTank.score}}</p>
+      <p class="score">{{serverTank.ready ? 'Ready' : 'Not Ready'}}</p>
     </div>
   </div>
   
-  <div id="gameAdminSection" *ngIf="tankSelection.gameAdmin && serverTanks.length > 1">
-    <h2>Make sure everyone is ready before starting!</h2>
-    <button id="startButton" (click)="startRound()" >Start Round</button>
+  <div id="gameAdminSection" *ngIf="serverTanks.length > 1">
+    <button id="readyButton" (click)="changeReadyStatus()" >Ready {{tankSelection.ready ? 'Down' : 'Up'}}</button>
   </div>
 </div>
